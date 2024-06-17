@@ -1,0 +1,1436 @@
+from datetime import datetime
+from datetime import time
+from datetime import timedelta
+from aiogram import types
+from aiogram.dispatcher import FSMContext
+from loader import ts
+from loader import bot
+from loader import dp
+from loader import BASE_URL
+from data import *
+from states import *
+from keyboards import *
+import requests
+from func import *
+import re
+
+
+# _ _ _ Common commands _ _ _
+
+
+async def aboutCommand(message: types.Message):
+    """
+    aboutCommand function
+
+    Displays information about the service to the user who is not registered
+
+    :param message: The message containing the user's input
+    :type message: types.Message
+    :send_message: Text containing the information about the service
+    :type: Text
+    """
+
+    # Depending on the content of the message, it sends the appropriate information to the user
+    if message.text == "F.A.Q.":
+        await bot.send_message(message.from_user.id, text_2.t_FAQ, reply_markup=GeneralKeyboards.group_aboutServiceMenu)
+    elif message.text == "Правила сервиса":
+        await bot.send_message(message.from_user.id, text_2.t_rules, reply_markup=GeneralKeyboards.group_aboutServiceMenu)
+    elif message.text == "Описание":
+        await bot.send_message(message.from_user.id, text_2.t_about, reply_markup=GeneralKeyboards.group_aboutServiceMenu)
+    elif message.text == "Вернунться назад":
+        await UserState.start_register.set()
+        await bot.send_message(message.from_user.id, text_1.t_time, reply_markup=GeneralKeyboards.group_startMenu)
+
+
+async def startCommand(message: types.Message):
+    """
+    startCommand function
+
+    Initializes user data and checks if the user is registered in the service
+
+    :param message: The message containing the user's input
+    :type message: types.Message
+    :init_user_data: Initialize user data dictionaries
+    :type: Data
+    :register_user: Register user in the service
+    :type: Function
+    :check_user_registration: Check if the user is registered in the service
+    :type: Function
+    :send_message: Text containing welcome message or error message
+    :type: Text
+    """
+    # Initialize global variables
+    global dataAboutUser, dataAboutTrip, dataAboutCar
+    # Initialize user data dictionaries
+    dataAboutUser[message.from_user.id] = {"user_tg_id": message.from_user.id}
+    dataAboutTrip[message.from_user.id] = {"user_tg_id": message.from_user.id}
+    dataAboutCar[message.from_user.id] = {"user_tg_id": message.from_user.id}
+
+    # Register user in the service
+    Accounting(dataAboutUser[message.from_user.id]["user_tg_id"])
+
+    # Check if the user is registered in the service
+    try:
+        dateRequest: dict
+        dateRequest = requests.post(
+            f"{BASE_URL}/checkuser", json={"id_tg": dataAboutUser[message.from_user.id]["user_tg_id"]}).json()
+    except Exception as e:
+        log_error(e)
+        dateRequest = {"action": "technical maintenance"}
+    if dateRequest["action"] == "success" and dateRequest["name"] != "None":
+        dataAboutUser[message.from_user.id]["user_id"] = dateRequest["id"]
+        dataAboutUser[message.from_user.id]["user_name"] = dateRequest["name"]
+        await MenuUser.start_state.set()
+        await bot.send_message(message.from_user.id, f'{text_1.t_welcome}', reply_markup=GeneralKeyboards.mainMenu)
+    elif dateRequest["action"] == "technical maintenance":
+        await bot.send_sticker(message.from_user.id, sticker=open("data/png/file_131068229.png", 'rb'))
+        await bot.send_message(message.from_user.id, text_1.t_mistake)
+        ts(1)
+        await bot.send_message(message.from_user.id, text_2.t_technical_maintenance, reply_markup=GeneralKeyboards.single_btn_command_menu)
+    else:
+        await UserState.start_register.set()
+        await bot.send_sticker(message.from_user.id, sticker=open("data/png/file_131068231.png", 'rb'))
+        await bot.send_message(message.from_user.id, text_1.t_start_1)
+        ts(1)
+        await bot.send_message(message.from_user.id, text_1.t_start_2)
+        ts(1)
+        await bot.send_message(message.from_user.id, text_1.t_start_3, reply_markup=GeneralKeyboards.group_startMenu)
+
+
+async def startRegister(message: types.Message):
+    """
+    startRegister function
+
+    Intermediate command
+
+    :param message: The message containing the user's input
+    :type message: types.Message
+
+    Returns:
+    - None (sends messages and updates the user state)
+    """
+
+    # Checking whether the user has selected
+    if message.text == "О сервисе":
+        await MenuAbout.start_state.set()
+        await bot.send_message(message.from_user.id, text_1.t_time, reply_markup=GeneralKeyboards.group_aboutServiceMenu)
+    elif message.text == "Зарегистрироваться! 🐣":
+        await UserState.get_dateAboutUser_name.set()
+        ts(1)
+        await bot.send_message(message.from_user.id, text_1.t_reg_name_1)
+        ts(1)
+        await bot.send_message(message.from_user.id, text_1.t_reg_name_2)
+    else:
+        # Foolproof
+        await bot.send_message(message.from_user.id, text_1.t_foolproof_buttons, reply_markup=GeneralKeyboards.group_startMenu)
+
+
+# _ _ _ Start_register _ _ _
+
+
+async def first_register_name(message: types.Message, state: FSMContext):
+    """
+    first_register_name function
+
+    Get user name
+
+    Parameters:
+    - message: The message containing the user's input
+    Type: types.Message
+    - state: The state of the user
+    Type: FSMContext
+
+    Global Variables:
+    - dataAboutUser: A dictionary containing user data
+    Type: dict
+
+    Returns:
+    - None (sends messages and updates the user state)
+    """
+
+    # Initialize global variables
+    global dataAboutUser
+
+    # Checking for a fool
+    if foolproofCyrillic(message.text):
+        # Initialize user data dictionaries
+        dataAboutUser[message.from_user.id]["user_name"] = message.text
+        await bot.send_message(message.from_user.id, text_1.t_reg_name_3)
+        await UserState.get_dateAboutUser_surname.set()
+    else:
+        # Foolproof
+        await bot.send_message(message.from_user.id, text_1.t_foolproof_correct_data)
+
+
+async def first_register_surname(message: types.Message, state: FSMContext):
+    """
+    first_register_surname function
+
+    Get user surname
+
+    Parameters:
+    - message: The message containing the user's input
+    Type: types.Message
+    - state: The state of the user
+    Type: FSMContext
+
+    Global Variables:
+    - dataAboutUser: A dictionary containing user data
+    Type: dict
+
+    Returns:
+    - None (sends messages and updates the user state)
+    """
+    global dataAboutUser
+
+    # Checking for a fool
+    if foolproofCyrillic(message.text):
+
+        # Initialize user data dictionaries
+        dataAboutUser[message.from_user.id]["user_surname"] = message.text
+        await bot.send_message(message.from_user.id, text_1.t_reg_name_4, reply_markup=GeneralKeyboards.single_send_number)
+        await UserState.get_dateAboutUser_number.set()
+    else:
+        # Foolproof
+        await bot.send_message(message.from_user.id, text_1.t_foolproof_correct_data)
+
+
+async def first_register_number(message: types.Message, state: FSMContext):
+    """
+    first_register_number function
+
+    Get user number
+
+    Parameters:
+    - message: The message containing the user's input
+    Type: types.Message
+    - state: The state of the user
+    Type: FSMContext
+
+    Global Variables:
+    - dataAboutUser: A dictionary containing user data
+    Type: dict
+    - BASE_URL: The base URL for the requests
+    Type: str
+
+    Returns:
+    - None (updates the user state and sends a message)
+    """
+    global dataAboutUser
+    phone_number = 0
+
+    if message.contact is not None and message.contact.phone_number is not None:
+        phone_number = message.contact.phone_number
+    elif foolproofPhoneNumber(message.text):
+        phone_number = message.text
+    else:
+        # Foolproof
+        await bot.send_message(message.from_user.id, text_1.t_foolproof_correct_data)
+
+    # Checking for a fool
+    if phone_number != 0:
+        # Initialize user data dictionaries
+        dataAboutUser[message.from_user.id]["user_number"] = phone_number
+        try:
+            zapros = {"name": dataAboutUser[message.from_user.id]["user_name"], "numb": dataAboutUser[message.from_user.id]["user_number"],
+                      "id_tg": dataAboutUser[message.from_user.id]["user_tg_id"], "surname": dataAboutUser[message.from_user.id]["user_surname"]}
+            dateRequest = requests.post(
+                f"{BASE_URL}/registrations", json=zapros).json()["id"]
+            dataAboutUser[message.from_user.id]["user_id"] = dateRequest
+            await MenuUser.start_state.set()
+            await bot.send_sticker(message.from_user.id, sticker=open("data/png/file_131068230.png", 'rb'))
+            await bot.send_message(message.from_user.id, text_1.t_first_welcome, reply_markup=GeneralKeyboards.mainMenu)
+        except Exception as e:
+            log_error(e)
+            if dateRequest["action"] == "errorData":
+                await bot.send_sticker(message.from_user.id, sticker=open("data/png/file_131068229.png", 'rb'))
+                await bot.send_message(message.from_user.id, text_1.t_mistake)
+                ts(1)
+                await bot.send_message(message.from_user.id, text_2.t_technical_maintenance, reply_markup=GeneralKeyboards.single_btn_command_menu)
+
+
+# _ _ _ MENU _ _ _
+
+
+async def mainMenu(message: types.Message, state: FSMContext):
+    global dataAboutUser, dataAboutTrip, dataAboutCar
+
+    try:
+        checkAccounting = dataAboutUser[message.from_user.id]
+    except:
+        dataAboutUser[message.from_user.id] = {
+            "user_tg_id": message.from_user.id}
+        dataAboutTrip[message.from_user.id] = {
+            "user_tg_id": message.from_user.id}
+        dataAboutCar[message.from_user.id] = {
+            "user_tg_id": message.from_user.id}
+        try:
+            dateRequest: dict
+            dateRequest = requests.post(
+                f"{BASE_URL}/checkuser", json={"id_tg": dataAboutUser[message.from_user.id]["user_tg_id"]}).json()
+        except Exception as e:
+            log_error(e)
+            dateRequest = {"action": "technical maintenance"}
+        if dateRequest["action"] == "success" and dateRequest["name"] != "None":
+            dataAboutUser[message.from_user.id]["user_id"] = dateRequest["id"]
+            dataAboutUser[message.from_user.id]["user_name"] = dateRequest["name"]
+        else:
+            await bot.send_sticker(message.from_user.id, sticker=open("data/png/file_131068229.png", 'rb'))
+            await bot.send_message(message.from_user.id, text_1.t_mistake)
+            ts(1)
+            await bot.send_message(message.from_user.id, text_2.t_technical_maintenance, reply_markup=GeneralKeyboards.single_btn_command_menu)
+            return
+    # Register user in the service
+    """
+    mainMenu function
+
+    A function for determining the start of a specific menu section using the start state and processing user input.
+
+    Parameters:
+    - message: The message containing the user's input
+    Type: types.Message
+    - state: The state of the user
+    Type: FSMContext
+
+    Returns:
+    - None (sends messages and updates the user state)
+    """
+
+    # Depending on the user input, perform the appropriate action
+    if message.text == "Профиль":
+        await myProfileCommandRegisteredFunction(message, state)
+    elif message.text == "Мои поездки":
+        await myTripsCommandRegisteredFunction(message, state)
+    elif message.text == "Поддержка":
+        await bot.send_message(message.from_user.id, text_2.t_support)
+    elif message.text == "О сервисе":
+        await MenuUser.go_to_about.set()
+        await bot.send_message(message.from_user.id, text_1.t_about, reply_markup=GeneralKeyboards.group_aboutServiceMenuRegistered)
+    elif message.text == "Создать поездку":
+        await CreateTrip.start_creating.set()
+        await bot.send_message(message.from_user.id, text_3.t_go)
+        await bot.send_message(message.from_user.id, text_3.t_get_dateAboutUser_typeOfMembers, reply_markup=GeneralKeyboards.group_status)
+
+        # await MenuUser.go_CreateTrip.set()
+        # await bot.send_message(message.from_user.id, text_1.t_time, reply_markup=GeneralKeyboards.single_btn_next)
+    else:
+        # Foolproof
+        await bot.send_message(message.from_user.id, text_1.t_foolproof_buttons, reply_markup=GeneralKeyboards.mainMenu)
+
+
+async def aboutCommandRegistered(message: types.Message):
+    """
+    About service
+
+    The function processes requests from the "Service" section and sends information about the selected option. It also allows the user to return to the main menu.
+
+    Parameters:
+    - message: The message containing the user's input
+    Type: types.Message
+
+    Global Variables:
+    - dataAboutUser: A dictionary containing user data
+    Type: dict
+
+    Returns:
+    - None (sends messages and updates the user state)
+    """
+    # Initialize global variables
+    global dataAboutUser
+
+    # Depending on the user input, perform the appropriate action
+    if message.text == "F.A.Q.":
+        await bot.send_message(message.from_user.id, text_2.t_FAQ)
+    elif message.text == "Правила сервиса":
+        await bot.send_message(message.from_user.id, text_2.t_rules)
+    elif message.text == "Описание":
+        await bot.send_message(message.from_user.id, text_2.t_about)
+    elif message.text == "Вернуться в главное меню":
+        await MenuUser.start_state.set()
+        await bot.send_message(message.from_user.id, f'{text_1.t_welcome}', reply_markup=GeneralKeyboards.mainMenu)
+    else:
+        await MenuUser.start_state.set()
+        # Foolproof
+        await bot.send_message(message.from_user.id, text_1.t_foolproof_buttons, reply_markup=GeneralKeyboards.mainMenu)
+
+
+async def myProfileCommandRegistered(message: types.Message, state: FSMContext):
+    """
+    My profile info
+
+    The function handles requests from the "Profile" section. Created to further
+    increase the functionality, namely: the ability to edit the profile
+
+    :Returns to the main menu, sending information about a section
+    """
+    await MenuUser.start_state.set()
+    if message.text != "Вернуться в главное меню":
+        # Foolproof
+        await bot.send_message(message.from_user.id, text_1.t_foolproof_buttons, reply_markup=GeneralKeyboards.mainMenu)
+    else:
+        await bot.send_message(message.from_user.id, f'{text_1.t_welcome}', reply_markup=GeneralKeyboards.mainMenu)
+
+
+async def myProfileCommandRegisteredFunction(message: types.Message, state: FSMContext):
+    """
+    My profile info Function
+
+    Function - Compact algorithm packaging for the "Profile" section function
+
+    :param message: a class representing a user's message in a telegram bot
+    :type message: types.Message
+    :param state: For the possibility of further upgrade of the bot
+    :type state: FSMContext
+    :send_message: User Information
+    :type: Text
+    """
+    global dataAboutUser, dataAboutTrip, dataAboutCar
+    # Connection.accessing the database using an exception
+    try:
+        userData = requests.post(
+            f"{BASE_URL}/getusers", json={"id": f'{dataAboutUser[message.from_user.id]["user_id"]}'}).json()
+    except Exception as e:  # If an exception occurs, writes error data
+        log_error(e)
+        some_info = "technical maintenance"
+    if userData["action"] == "success":
+        # Output of user data to the bot
+        await MenuUser.set_profileInfo.set()
+        userData = userData["data"]
+        await bot.send_message(message.from_user.id, f"Имя: {userData['name']}\n"
+                               f"Фамилия: {userData['surname']}\n"
+                               f"Номер: {userData['numb']}\n", reply_markup=GeneralKeyboards.single_btn_main)
+    elif userData["action"] == "technical maintenance":
+        # Output of the text about the occurrence of an error in the database to the user
+        await bot.send_sticker(message.from_user.id, sticker=open("data/png/file_131068229.png", 'rb'))
+        await bot.send_message(message.from_user.id, text_1.t_mistake)
+        ts(1)
+        await bot.send_message(message.from_user.id, text_2.t_technical_maintenance, reply_markup=GeneralKeyboards.single_btn_command_menu)
+
+
+async def myTripsCommandRegistered(message: types.Message, state: FSMContext):
+    """
+    My trips info
+
+    The function handles requests from the "My Trips" section. Created to further
+    expand the functionality, namely: the ability to edit trips
+
+    :Returns to the main menu, sending information about a section
+    """
+    await MenuUser.start_state.set()
+    if message.text != "Вернуться в главное меню":
+        # Foolproof
+        await bot.send_message(message.from_user.id, text_1.t_foolproof_buttons, reply_markup=GeneralKeyboards.mainMenu)
+    else:
+        await bot.send_message(message.from_user.id, f'{text_1.t_welcome}', reply_markup=GeneralKeyboards.mainMenu)
+
+
+async def myTripsCommandRegisteredFunction(message: types.Message, state: FSMContext):
+    """
+    My trips info Function
+
+    Function - Compact algorithm packaging for the "My Trips" section function
+
+    :param message: a class representing a user's message in a telegram bot
+    :type message: types.Message
+    :param state: For the possibility of further upgrade of the bot
+    :type state: FSMContext
+    :send_message: Information about trips
+    :type: Text
+    """
+    global dataAboutUser, dataAboutTrip, dataAboutCar
+    # Connection.accessing the database using an exception
+    try:
+        userData = requests.post(f"{BASE_URL}/gettrips/trips", json={
+                                 "id": f'{dataAboutUser[message.from_user.id]["user_id"]}'}).json()
+    except Exception as e:
+        log_error(e)
+        userData = {"action": "technical maintenance"}
+    try:
+        if userData["action"] == "technical maintenance":
+            # Output of the text about the occurrence of an error in the database to the user
+            await bot.send_sticker(message.from_user.id, sticker=open("data/png/file_131068229.png", 'rb'))
+            await bot.send_message(message.from_user.id, text_1.t_mistake)
+            ts(1)
+            await bot.send_message(message.from_user.id, text_2.t_technical_maintenance, reply_markup=GeneralKeyboards.single_btn_command_menu)
+        elif userData["action"] == "success":
+            # Output of user data to the bot
+            await MenuUser.set_myTrips.set()
+            userData = userData["data"]
+            newStr = generate_new_str(userData)
+            await bot.send_message(message.from_user.id, newStr, reply_markup=GeneralKeyboards.single_btn_main)
+    except Exception as e:
+        await MenuUser.set_myTrips.set()
+        await bot.send_message(message.from_user.id, text_2.t_no_active_trips, reply_markup=GeneralKeyboards.single_btn_main)
+
+
+# _ _ _ TRIPS _ _ _
+
+
+# async def createTripForUser(message : types.Message):
+#     """
+#     Create a trip
+
+#     Function for starting the trip creation process.
+
+#     Parameters:
+#     - message: The message containing the user's input
+#     Type: types.Message
+
+#     Returns:
+#     - None (sends messages and updates the user state)
+#     """
+#     await CreateTrip.start_creating.set()
+#     await bot.send_message(message.from_user.id, text_3.t_go)
+#     await bot.send_message(message.from_user.id, text_3.t_get_dateAboutUser_typeOfMembers, reply_markup=GeneralKeyboards.group_status)
+
+
+async def createTripForUser_typeOfMembers(message: types.Message):
+    """
+    Create trip for user & type of members
+
+    Function for handling the selection of the type of members for the trip.
+
+    Parameters:
+    - message: The message containing the user's input
+    Type: types.Message
+
+    Global Variables:
+    - dataAboutUser: A dictionary containing user data
+    Type: dict
+    - dataAboutTrip: A dictionary containing trip data
+    Type: dict
+    - dataAboutCar: A dictionary containing car data
+    Type: dict
+    - BASE_URL: The base URL for the requests
+    Type: str
+
+    Returns:
+    - None (sends messages and updates the user state)
+    """
+    global dataAboutUser, dataAboutTrip, dataAboutCar
+    if message.text == "Водитель":
+        dataAboutTrip[message.from_user.id]["typeOfMembers"] = "driver"
+        try:
+            userData = requests.post(f"{BASE_URL}/gettrips/drivers", json={
+                                     "user_id": dataAboutUser[message.from_user.id]["user_id"]}).json()
+        except Exception as e:
+            log_error(e)
+            userData = {"action": "technical maintenance"}
+        if userData["action"] == "technical maintenance":
+            await bot.send_sticker(message.from_user.id, sticker=open("data/png/file_131068229.png", 'rb'))
+            await bot.send_message(message.from_user.id, text_1.t_mistake)
+            ts(1)
+            await bot.send_message(message.from_user.id, text_2.t_technical_maintenance, reply_markup=GeneralKeyboards.single_btn_command_menu)
+        elif len(userData["data"]) > 0:
+            userData["data"] = userData["data"][0]
+            dataAboutCar[message.from_user.id]["carData"] = userData["data"]
+            await bot.send_message(message.from_user.id, text_3.t_get_dateAboutUser_carData, reply_markup=GeneralKeyboards.group_yesNo)
+            dataAboutCar[message.from_user.id]["car_id"] = userData["data"]["car_id"]
+            await CreateTrip.get_dateAboutUser_typeOfMembers.set()
+            await bot.send_message(message.from_user.id, f'Бренд: {userData["data"]["brand"]}\nЦвет: {userData["data"]["colour"]}\nНомера: {userData["data"]["numbcar"]}')
+        else:
+            await CreateTrip.get_tripNumberOfPassengers.set()
+            dataAboutCar[message.from_user.id]["check_"] = 0
+            await bot.send_message(message.from_user.id, text_3.t_get_tripNumberOfPassengers)
+    elif message.text == "Пассажир":
+        data = inlineKeyboards.GenerationOfInlineButtons_calendar()
+        dataAboutTrip[message.from_user.id]["typeOfMembers"] = "passenger"
+        await CreateTrip.get_dateAboutUser_carData.set()
+        await bot.send_message(message.from_user.id, text_3.t_get_dateAbout_tripDates, reply_markup=data[2])
+        dataAboutTrip[message.from_user.id]["tripNumberOfPassengers"] = 0
+        dataAboutTrip[message.from_user.id]["page_number"] = [
+            data[0], data[1], data[3], data[4]]
+    else:
+        # Foolproof
+        await bot.send_message(message.from_user.id, text_1.t_foolproof_buttons, reply_markup=GeneralKeyboards.group_status)
+
+
+# _ _ _ Creating a trip _ _ _
+async def functionFoolproof(message: types.Message):
+    """
+    functionFoolproof
+
+    Asks to use the suggested buttons
+
+    Returns:
+    - None (sends messages)
+    """
+    await bot.send_message(message.from_user.id, text_1.t_foolproof_buttons)
+
+
+async def handle_title_button(callback_query: types.CallbackQuery):
+    """
+    Handle the title button callback query
+
+    This function sends message
+
+    :param callback_query: The callback query
+    :type callback_query: types.CallbackQuery
+    """
+    await callback_query.answer("Мы уже разрабатываем новые функции 😊")
+
+
+async def handle_cancel_button(callback_query: types.CallbackQuery):
+    """
+    Handle the cancel button callback query
+
+    This function sets the user state to start_state and sends a welcome message with the main menu
+
+    :param callback_query: The callback query
+    :type callback_query: types.CallbackQuery
+    """
+    await callback_query.answer("")
+    await MenuUser.start_state.set()
+    await bot.send_message(callback_query.from_user.id, f'{text_1.t_welcome}', reply_markup=GeneralKeyboards.mainMenu)
+
+
+async def createTripForUser_carData(message: types.Message):
+    """
+    Create trip for user & car data
+
+    Function for handling the selection of car data by the user.
+
+    Parameters:
+    - message: The message containing the user's input
+    Type: types.Message
+
+    Global Variables:
+    - dataAboutCar: A dictionary containing car data
+    Type: dict
+
+    Returns:
+    - None (sends messages and updates the user state)
+    """
+    global dataAboutCar
+    await CreateTrip.get_tripNumberOfPassengers.set()
+    await bot.send_message(message.from_user.id, text_3.t_get_tripNumberOfPassengers)
+    dataAboutCar[message.from_user.id]["check_"] = 1 if message.text == "Да" else 0
+
+
+async def createTripForUser_tripNumberOfPassengers(message: types.Message):
+    """
+    Create trip for user & number of passengers
+
+    Function for handling the selection of the number of passengers for the trip.
+
+    Parameters:
+    - message: The message containing the user's input
+    Type: types.Message
+
+    Global Variables:
+    - dataAboutTrip: A dictionary containing trip data
+    Type: dict
+    - dataAboutCar: A dictionary containing car data
+    Type: dict
+
+    Returns:
+    - None (sends messages and updates the user state)
+    """
+    global dataAboutTrip, dataAboutCar
+
+    try:
+        if int(message.text) >= 0 and int(message.text) <= 4:  # Maximum number of passengers
+            dataAboutTrip[message.from_user.id]["tripNumberOfPassengers"] = message.text
+            if dataAboutCar[message.from_user.id]["check_"] == 1:
+                data = inlineKeyboards.GenerationOfInlineButtons_calendar()
+                await CreateTrip.get_dateAboutUser_carData.set()
+                await bot.send_message(message.from_user.id, text_3.t_get_dateAbout_tripDates, reply_markup=data[2])
+                dataAboutTrip[message.from_user.id]["page_number"] = [
+                    data[0], data[1], data[3], data[4]]
+
+            else:
+                await RecordingInformationAboutCar.start_state.set()
+                dataAboutCar[message.from_user.id]["page_numberBrands"] = 0
+                dataAboutCar[message.from_user.id]["page_numberModels"] = 0
+                await bot.send_message(message.from_user.id, text_3.t_noCarInTheDataBase_carBrand, reply_markup=GenerationOfInlineButtons(general_data.cars.brends, "Бренды")[0])
+        else:
+            # Foolproof
+            await bot.send_message(message.from_user.id, text_1.t_foolproof_correct_data)
+    except Exception as e:
+        # Foolproof
+        await bot.send_message(message.from_user.id, text_1.t_foolproof_correct_data)
+
+
+# _ _ _ Recording machine data _ _ _
+async def handle_cancel_button(callback_query: types.CallbackQuery):
+    """
+    Handle the cancel button callback query
+
+    This function sets the user state to start_state and sends a welcome message with the main menu
+
+    :param callback_query: The callback query
+    :type callback_query: types.CallbackQuery
+    """
+    await callback_query.answer("")
+    await MenuUser.start_state.set()
+    await bot.send_message(callback_query.from_user.id, f'{text_1.t_welcome}', reply_markup=GeneralKeyboards.mainMenu)
+
+
+async def handle_prev_button(callback_query: types.CallbackQuery):
+    """
+    Handle the previous button callback query
+
+    This function handles the pagination for car brands and updates the inline keyboard markup with the previous page
+
+    :param callback_query: The callback query
+    :type callback_query: types.CallbackQuery
+    """
+    global dataAboutCar
+    await callback_query.answer("")
+    data = GenerationOfInlineButtons(general_data.cars.brends, "Бренды",
+                                     page_number=dataAboutCar[callback_query.from_user.id]["page_numberBrands"] - 1)
+    if data != -2:
+        dataAboutCar[callback_query.from_user.id]["page_numberBrands"] = data[1]
+        dataAboutCar[callback_query.from_user.id]["page_numberModels"] = 0
+        await callback_query.message.edit_reply_markup(data[0])
+
+
+async def handle_next_button(callback_query: types.CallbackQuery):
+    """
+    Handle the next button callback query
+
+    This function handles the pagination for car brands and updates the inline keyboard markup with the next page
+
+    :param callback_query: The callback query
+    :type callback_query: types.CallbackQuery
+    """
+    global dataAboutCar
+    await callback_query.answer("")
+    data = GenerationOfInlineButtons(general_data.cars.brends, "Бренды",
+                                     page_number=dataAboutCar[callback_query.from_user.id]["page_numberBrands"] + 1)
+    if data != -2:
+        dataAboutCar[callback_query.from_user.id]["page_numberBrands"] = data[1]
+        dataAboutCar[callback_query.from_user.id]["page_numberModels"] = 0
+        await callback_query.message.edit_reply_markup(data[0])
+
+
+async def handle_brand_button(callback_query: types.CallbackQuery):
+    """
+    Handle the brand button callback query
+
+    This function handles the selection of a car brand and updates the carBrand in the dataAboutCar dictionary.
+    It also sets the user state to start_state_model and sends a message to select the car model.
+
+    :param callback_query: The callback query
+    :type callback_query: types.CallbackQuery
+    """
+    await callback_query.answer("")
+    global dataAboutCar
+    dataAboutCar[callback_query.from_user.id]["carBrand"] = callback_query.data
+    await RecordingInformationAboutCar.start_state_model.set()
+    await callback_query.message.edit_text(text_3.t_noCarInTheDataBase_carModel)
+    await callback_query.message.edit_reply_markup(GenerationOfInlineButtons(general_data.cars.models[dataAboutCar[callback_query.from_user.id]["carBrand"]], "Модели", page_number=dataAboutCar[callback_query.from_user.id]["page_numberModels"])[0])
+
+
+async def handle_prev_button_model(callback_query: types.CallbackQuery):
+    """
+    Handle the previous button (car models) callback query
+
+    This function handles the pagination for car models and updates the inline keyboard markup with the previous page.
+
+    :param callback_query: The callback query
+    :type callback_query: types.CallbackQuery
+    """
+    global dataAboutCar
+    await callback_query.answer("")
+
+    data = GenerationOfInlineButtons(general_data.cars.models[dataAboutCar[callback_query.from_user.id]["carBrand"]],
+                                     "Модели", page_number=dataAboutCar[callback_query.from_user.id]["page_numberModels"] - 1)
+    if data != -2:
+        dataAboutCar[callback_query.from_user.id]["page_numberModels"] = data[1]
+        await callback_query.message.edit_reply_markup(data[0])
+
+
+async def handle_next_button_model(callback_query: types.CallbackQuery):
+    """
+    Handle the next button (car models) callback query
+
+    This function handles the pagination for car models and updates the inline keyboard markup with the next page.
+
+    :param callback_query: The callback query
+    :type callback_query: types.CallbackQuery
+    """
+    global dataAboutCar
+    await callback_query.answer("")
+
+    data = GenerationOfInlineButtons(general_data.cars.models[dataAboutCar[callback_query.from_user.id]["carBrand"]],
+                                     "Модели", page_number=dataAboutCar[callback_query.from_user.id]["page_numberModels"] + 1)
+    if data != -2:
+        dataAboutCar[callback_query.from_user.id]["page_numberModels"] = data[1]
+        await callback_query.message.edit_reply_markup(data[0])
+
+
+async def handle_model_button(callback_query: types.CallbackQuery):
+    """
+    Handle the model button callback query
+
+    This function handles the selection of a car model and updates the carBrand in the dataAboutCar dictionary.
+    It also sets the user state to get_dateAboutCarBrand and sends a message to select the car color.
+
+    :param callback_query: The callback query
+    :type callback_query: types.CallbackQuery
+    """
+    global dataAboutCar
+
+    await callback_query.answer("")
+    dataAboutCar[callback_query.from_user.id]["carBrand"] += f" {
+        callback_query.data}"
+    await RecordingInformationAboutCar.get_dateAboutCarBrand.set()
+    colors = Colors()
+    await bot.send_message(callback_query.from_user.id, text_3.t_carColour, reply_markup=colors.inline_keyboard_colors)
+
+
+async def createDriver_dateAboutCarColour(callback_query: types.CallbackQuery):
+    """
+    Create driver & date about car colour
+
+    This function handles the selection of the car color and updates the carColour in the dataAboutCar dictionary.
+    It also sets the user state to get_dateAboutCarColour and sends a message to enter the car number.
+
+    :param callback_query: The callback query
+    :type callback_query: types.CallbackQuery
+    """
+    global dataAboutCar
+
+    await callback_query.answer("")
+    dataAboutCar[callback_query.from_user.id]["carColour"] = callback_query.data
+    await RecordingInformationAboutCar.get_dateAboutCarColour.set()
+    await bot.send_message(callback_query.from_user.id, text_3.t_carNumb)
+
+
+async def createDriver_dateAboutCarNumbCar(message: types.Message):
+    """
+    Create driver & date about car & number car
+
+    This function handles the entry of the car number and updates the carNumb in the dataAboutCar dictionary.
+    It also sets the user state to check_data and sends a message to review the car information.
+
+    :param message: The message containing the user's input
+    :type message: types.Message
+    """
+    global dataAboutCar
+
+    if len(message.text) > 4 and len(message.text) < 8:
+        dataAboutCar[message.from_user.id]["carNumb"] = message.text
+        await RecordingInformationAboutCar.check_data.set()
+        await bot.send_message(message.from_user.id, f'{text_3.t_check_car}\n\nБренд: {dataAboutCar[message.from_user.id]["carBrand"]}\nЦвет: {dataAboutCar[message.from_user.id]["carColour"]}\nНомера: {dataAboutCar[message.from_user.id]["carNumb"]}\n\nЗаписать информацию о машине?', reply_markup=GeneralKeyboards.group_yesNo)
+    else:
+        # Foolproof
+        await bot.send_message(message.from_user.id, text_1.t_foolproof_correct_data)
+
+
+async def createDriver_dateAboutCar_check_car(message: types.Message):
+    """
+    Create driver & date about car & check car
+
+    This function handles the confirmation of the car information by the user.
+    If the user confirms, it sends a POST request to register the driver with the car information.
+    If there are any errors or technical maintenance, it sends appropriate error messages.
+    If the user does not confirm, it returns to the main menu.
+
+    :param message: The message containing the user's input
+    :type message: types.Message
+    """
+    global dataAboutUser, dataAboutTrip, dataAboutCar
+
+    if message.text == "Да":
+        try:
+            # Send a POST request to delete the existing driver trip and register the driver with the car information
+            userDataDelete = requests.post(f"{BASE_URL}/gettrips/drivers/delete", json={
+                                           "user_id": f'{dataAboutUser[message.from_user.id]["user_id"]}'}).json()
+            userData = requests.post(f"{BASE_URL}/registrations/drivers", json={
+                "user_id": f'{dataAboutUser[message.from_user.id]["user_id"]}', "brand": f'{dataAboutCar[message.from_user.id]["carBrand"]}', "colour": f'{dataAboutCar[message.from_user.id]["carColour"]}', "numbcar": f'{dataAboutCar[message.from_user.id]["carNumb"]}'
+            }).json()
+        except Exception as e:
+            log_error(e)
+            userData = {"action": "technical maintenance"}
+
+        if userData["action"] == "technical maintenance":
+            # Send an error message and a technical maintenance message with a single button keyboard
+            await bot.send_sticker(message.from_user.id, sticker=open("data/png/file_131068229.png", 'rb'))
+            await bot.send_message(message.from_user.id, text_1.t_mistake)
+            ts(1)
+            await bot.send_message(message.from_user.id, text_2.t_technical_maintenance, reply_markup=GeneralKeyboards.single_btn_command_menu)
+        else:
+            data = inlineKeyboards.GenerationOfInlineButtons_calendar()
+            await bot.send_message(message.from_user.id, text_3.t_ok_1)
+            ts(1)
+            await CreateTrip.get_dateAboutUser_carData.set()
+            await bot.send_message(message.from_user.id, text_3.t_get_dateAbout_tripDates, reply_markup=data[2])
+            dataAboutTrip[message.from_user.id]["page_number"] = [
+                data[0], data[1], data[3], data[4]]
+
+    elif message.text == "Нет":
+        # Set the user state to start_state and send a message with the main menu
+        await MenuUser.start_state.set()
+        await bot.send_message(message.from_user.id, f'{text_1.t_welcome}', reply_markup=GeneralKeyboards.mainMenu)
+    else:
+        # If the input is not valid, send an error message with the yes/no keyboard
+        # Foolproof
+        await bot.send_message(message.from_user.id, text_1.t_foolproof_buttons, reply_markup=GeneralKeyboards.group_yesNo)
+# _ _ _ End of driver registration _ _ _
+
+
+async def handle_prev_button_date(callback_query: types.CallbackQuery):
+    """
+    Handle the previous button callback query
+
+    This function handles the pagination for car brands and updates the inline keyboard markup with the previous page
+
+    :param callback_query: The callback query
+    :type callback_query: types.CallbackQuery
+    """
+    global dataAboutTrip
+    page_number = dataAboutTrip[callback_query.from_user.id]["page_number"]
+
+    await callback_query.answer("")
+    data = GenerationOfInlineButtons_calendar(
+        page_number[1] - 1, page_number[0], page_number[2] - 1, page_number[3])
+    if data != -2:
+        dataAboutTrip[callback_query.from_user.id]["page_number"] = [
+            data[0], data[1], data[3], data[4]]
+        await callback_query.message.edit_reply_markup(data[2])
+
+
+async def handle_next_button_date(callback_query: types.CallbackQuery):
+    """
+    Handle the next button callback query
+
+    This function handles the pagination for car brands and updates the inline keyboard markup with the next page
+
+    :param callback_query: The callback query
+    :type callback_query: types.CallbackQuery
+    """
+    global dataAboutTrip
+    page_number = dataAboutTrip[callback_query.from_user.id]["page_number"]
+
+    await callback_query.answer("")
+    data = GenerationOfInlineButtons_calendar(
+        page_number[1] + 1, page_number[0], page_number[2] + 1, page_number[3])
+    if data != -2:
+        dataAboutTrip[callback_query.from_user.id]["page_number"] = [
+            data[0], data[1], data[3], data[4]]
+        await callback_query.message.edit_reply_markup(data[2])
+
+
+async def createTripForUser_tripDates_hours(callback_query: types.CallbackQuery):
+    global dataAboutTrip
+    # print("\n date", type(datetime.strptime(callback_query.data, "%d.%m.%Y").date()), "\n")
+    # print("\n date", type(datetime.now().date()), "\n")
+    # if datetime.now().date() == datetime.strptime(callback_query.data, "%d.%m.%Y").date():
+    #     dataAboutTrip[callback_query.from_user.id]["checkDate"] = 0
+
+    # print(dataAboutTrip[callback_query.from_user.id]["checkDate"])
+    if datetime.now() > datetime.strptime(callback_query.data, "%d.%m.%Y") + timedelta(days=1):
+        await callback_query.answer("Выбери, пожалуйста, актуальную дату!", show_alert=True)
+    else:
+        dataAboutTrip[callback_query.from_user.id]["tripDates"] = remove_non_digits(
+            callback_query.data)
+
+        await callback_query.answer("")
+        await CreateTrip.get_dateAbout_tripDates.set()
+        # Check date
+        if datetime.now().date() == datetime.strptime(callback_query.data, "%d.%m.%Y").date():
+            dataAboutTrip[callback_query.from_user.id]["checkDate"] = 1
+        else:
+            dataAboutTrip[callback_query.from_user.id]["checkDate"] = 0
+        await bot.send_message(callback_query.from_user.id, text_3.t_get_dateAbout_tripTimes, reply_markup=inlineKeyboards.GenerationOfInlineButtons_time())
+
+
+async def createTripForUser_tripDates_minutes(callback_query: types.CallbackQuery):
+    await CreateTrip.get_dateAbout_tripTimes_minutes.set()
+
+    await callback_query.answer("")
+    await callback_query.message.edit_reply_markup(inlineKeyboards.GenerationOfInlineButtons_time(typeOfTime="minutes", time_hours=callback_query.data))
+
+
+async def createTripForUser_tripTimes(callback_query: types.CallbackQuery):
+    """
+    Create trip for user & time
+
+    This function handles the entry of trip times by the user.
+    It updates the tripTimes in the dataAboutTrip dictionary and sets the user state to get_dateAbout_tripPointA.
+    It also sends a message to select the trip starting point (campus).
+
+    :param message: The message containing the user's input
+    :type message: types.Message
+    """
+    global dataAboutTrip
+
+    if dataAboutTrip[callback_query.from_user.id]["checkDate"] == 1 and datetime.now().time() > datetime.strptime(callback_query.data, "%H:%M").time():
+
+        await CreateTrip.get_dateAbout_tripDates.set()
+        await bot.send_message(callback_query.from_user.id, text_3.t_get_dateAbout_tripTimes, reply_markup=inlineKeyboards.GenerationOfInlineButtons_time())
+        await callback_query.answer("Выбери, пожалуйста, актуальное время!", show_alert=True)
+    else:
+        dataAboutTrip[callback_query.from_user.id]["tripTimes"] = remove_non_digits(
+            callback_query.data)
+        await CreateTrip.get_dateAbout_tripTimes.set()
+        await bot.send_message(callback_query.from_user.id, text_3.t_get_dateAbout_tripPointA, reply_markup=GeneralKeyboards.group_districts)
+
+
+async def createTripForUser_tripPointA(message: types.Message):
+    """
+    Create trip for user & trip point A
+
+    This function handles the entry of trip point A by the user.
+    It updates the tripPointA in the dataAboutTrip dictionary, sets the user state to get_dateAbout_tripPointB,
+    and sends a message to select the trip point B (campus).
+
+    :param message: The message containing the user's input
+    :type message: types.Message
+    """
+    global dataAboutTrip
+
+    if message.text in ["Центр", "Левенцовка", "Суворовский"]:
+        await CreateTrip.get_dateAbout_tripPointA.set()
+        dataAboutTrip[message.from_user.id]["tripPointA"] = message.text
+        await bot.send_message(message.from_user.id, text_3.t_get_dateAbout_tripPointB, reply_markup=GeneralKeyboards.group_districts)
+    else:
+        await bot.send_message(message.from_user.id, text_1.t_foolproof_buttons, reply_markup=GeneralKeyboards.group_districts)
+
+
+async def createTripForUser_tripPointB(message: types.Message):
+    """
+    Create trip for user & trip point B
+
+    This function handles the entry of the trip ending point by the user.
+    It updates the tripPointB in the dataAboutTrip dictionary.
+    If the tripPointB is the same as the tripPointA, it sends an error message.
+    Otherwise, it sets the user state to get_dateAbout_tripPointB and sends a message to review the trip information.
+
+    :param message: The message containing the user's input
+    :type message: types.Message
+    """
+    global dataAboutTrip
+
+    # Update the tripPointB in the dataAboutTrip dictionary with the user input
+    dataAboutTrip[message.from_user.id]["tripPointB"] = message.text
+
+    # Check if the tripPointB is the same as the tripPointA
+    if dataAboutTrip[message.from_user.id]["tripPointB"] == dataAboutTrip[message.from_user.id]["tripPointA"]:
+        # If the tripPointB is the same as the tripPointA, send an error message with a single button keyboard
+        await bot.send_message(message.from_user.id, text_3.t_thePointsAreEqual, reply_markup=GeneralKeyboards.single_btn_command_menu)
+    elif message.text in ["Центр", "Левенцовка", "Суворовский"]:
+        # If the tripPointB is different from the tripPointA, set the user state to get_dateAbout_tripPointB
+        await CreateTrip.get_dateAbout_tripPointB.set()
+        await bot.send_message(message.from_user.id, text_3.t_check, reply_markup=GeneralKeyboards.group_yesNo)
+        typeOfMembers = "Пассажир" if dataAboutTrip[message.from_user.id][
+            "typeOfMembers"] == "passenger" else "Водитель"
+        await bot.send_message(message.from_user.id, f'Тип участника: {typeOfMembers}\nДата поездки: {format_date_time(dataAboutTrip[message.from_user.id]["tripDates"])}\nВремя поездки:
+                               {format_date_time(dataAboutTrip[message.from_user.id]["tripTimes"])}\nОткуда: {dataAboutTrip[message.from_user.id]["tripPointA"]}\nКуда:
+                               {dataAboutTrip[message.from_user.id]["tripPointB"]}')
+    else:
+        await bot.send_message(message.from_user.id, text_1.t_foolproof_buttons, reply_markup=GeneralKeyboards.group_districts)
+
+
+async def createTripForUser_check(message: types.Message):
+    """
+    Send data to database
+
+    This function handles the confirmation of trip details by the user.
+    If the user confirms, it sends a POST request to create the trip in the database.
+    It also checks for suitable trips and sends appropriate messages based on the type of member.
+
+    :param message: The message containing the user's input
+    :type message: types.Message
+    """
+    global dataAboutUser, dataAboutTrip, dataAboutCar
+    if message.text == "Да":
+        try:
+            userData = requests.post(f"{BASE_URL}/сreatingtrips",
+                                     json={
+                "id": f'{dataAboutUser[message.from_user.id]["user_id"]}', "typeofmembers": f'{dataAboutTrip[message.from_user.id]["typeOfMembers"]}',
+                "tripsdates": f'{dataAboutTrip[message.from_user.id]["tripDates"]}', "tripstimes": f'{dataAboutTrip[message.from_user.id]["tripTimes"]}',
+                "pointa": f'{dataAboutTrip[message.from_user.id]["tripPointA"]}', "pointb": f'{dataAboutTrip[message.from_user.id]["tripPointB"]}',
+                "number_of_passengers": f'{dataAboutTrip[message.from_user.id]["tripNumberOfPassengers"]}', "status": "waiting"
+            }).json()
+            # Processing data from the database "AgreedTrips"
+            userDataAgreedTrips = requests.post(
+                f"{BASE_URL}/gettrips/agreedTrips/suitableTrips", json={"id": "test"}).json()
+            userDataAgreedTrips["data"] = remove_dicts_with_id(
+                userDataAgreedTrips["data"], dataAboutUser[message.from_user.id]["user_id"], "id_driver")
+            # Processing data from the database "Trips"
+            userDataTrips = requests.post(
+                f"{BASE_URL}/gettrips/trips/suitableTrips", json={"id": "test"}).json()
+            userData1 = remove_dicts_with_id(
+                userDataTrips["data"], dataAboutUser[message.from_user.id]["user_id"], "id")
+            dataAboutTrip[message.from_user.id]["id_trip"] = userData["id_trip"]
+
+            if dataAboutTrip[message.from_user.id]["typeOfMembers"] == "driver":
+                dataAboutTrip[message.from_user.id]["id_agreedTrips"] = userData["id_agreedTrips"]
+        except Exception as e:
+            log_error(e)
+            userData = {"action": "technical maintenance"}
+
+        if userData["action"] == "technical maintenance":
+            await bot.send_sticker(message.from_user.id, sticker=open("data/png/file_131068229.png", 'rb'))
+            await bot.send_message(message.from_user.id, text_1.t_mistake)
+            ts(1)
+            await bot.send_message(message.from_user.id, text_2.t_technical_maintenance, reply_markup=GeneralKeyboards.single_btn_command_menu)
+
+        else:
+            await bot.send_message(message.from_user.id, text_3.t_ok)
+
+            # if user a driver
+            if dataAboutTrip[message.from_user.id]["typeOfMembers"] == "driver":
+                # Processing data from the database
+                userDataPassengers = remove_dicts_with_id(
+                    userData1, "driver", "typeofmembers")
+                userDataPassengers_filter_trip_list = filter_trip_list(
+                    userDataPassengers, dataAboutTrip[message.from_user.id]["tripPointA"], dataAboutTrip[message.from_user.id]["tripPointB"])
+                userData2 = create_new_dict(
+                    userDataPassengers_filter_trip_list)
+                userData2[dataAboutTrip[message.from_user.id]["id_agreedTrips"]] = [
+                    dataAboutTrip[message.from_user.id]["tripDates"], dataAboutTrip[message.from_user.id]["tripTimes"]]
+                suitableTripIDs = algorithmForCalculatingSuitableTripsTime(userData2, dataAboutTrip[message.from_user.id]["id_agreedTrips"], algorithmForCalculatingSuitableTripsDate(
+                    userData2, dataAboutTrip[message.from_user.id]["id_agreedTrips"]), 60)
+
+                if len(suitableTripIDs) == 0:
+                    await bot.send_message(message.from_user.id, text_3.t_no_matches, reply_markup=GeneralKeyboards.single_btn_command_menu)
+
+                else:
+                    check = 0
+                    for i in suitableTripIDs:
+                        if i == dataAboutTrip[message.from_user.id]["id_trip"]:
+                            continue
+                        try:
+                            new_lst = [dict for dict in userDataPassengers if dict.get(
+                                "id_trip") == i][0]
+                            dateRequest = requests.post(f"{BASE_URL}/settrips/agreedTrips", json={
+                                                        "id_passenger": new_lst["id"], "id_trip": i, "id_agreed_trip": dataAboutTrip[message.from_user.id]["id_agreedTrips"]}).json()
+                        except Exception as e:
+                            log_error(e)
+                            await bot.send_sticker(message.from_user.id, sticker=open("data/png/file_131068229.png", 'rb'))
+                            await bot.send_message(message.from_user.id, text_1.t_mistake)
+                            ts(1)
+                            await bot.send_message(message.from_user.id, text_2.t_technical_maintenance, reply_markup=GeneralKeyboards.single_btn_command_menu)
+
+                        else:
+                            if dateRequest["action"] == "success" and dateRequest["status"] == "success":
+                                try:
+                                    agreedUserData = dateRequest = requests.post(
+                                        f"{BASE_URL}/getusers", json={"id": new_lst["id"]}).json()["data"]
+                                except Exception as e:
+                                    log_error(e)
+                                    break
+                                user = await bot.get_chat(chat_id=agreedUserData["id_tg"])
+                                try:
+                                    dateRequestDriver = requests.post(f"{BASE_URL}/gettrips/drivers", json={
+                                                                      "user_id": dataAboutUser[message.from_user.id]["user_id"]}).json()["data"][0]
+                                except Exception as e:
+                                    log_error(e)
+                                    await bot.send_sticker(message.from_user.id, sticker=open("data/png/file_131068229.png", 'rb'))
+                                    await bot.send_message(message.from_user.id, text_1.t_mistake)
+                                    ts(1)
+                                    await bot.send_message(message.from_user.id, text_2.t_technical_maintenance, reply_markup=GeneralKeyboards.single_btn_command_menu)
+                                # Notification to the driver
+                                await bot.send_sticker(message.from_user.id, sticker=open("data/png/file_131068230.png", 'rb'))
+                                await bot.send_message(message.from_user.id, text_3.t_good_1)
+                                ts(1)
+                                await bot.send_message(message.from_user.id, text_3.t_good_2)
+                                await bot.send_message(message.from_user.id, f'Имя: {agreedUserData["name"]}\ntg: @{user.username}',  reply_markup=GeneralKeyboards.single_btn_command_menu)
+                                await bot.send_message(agreedUserData["id_tg"], text_3.t_good_1)
+                                # Notification to the passenger
+                                await bot.send_sticker(agreedUserData["id_tg"], sticker=open("data/png/file_131068230.png", 'rb'))
+                                await bot.send_message(agreedUserData["id_tg"], text_3.t_good_2)
+                                await bot.send_message(agreedUserData["id_tg"], f'Имя: {dataAboutUser[message.from_user.id]["user_name"]}\ntg: @{message.from_user.username}\nДата:
+                                                       {format_date_time(dataAboutTrip[message.from_user.id]["tripDates"])}\nВремя:
+                                                       {format_date_time(dataAboutTrip[message.from_user.id]["tripTimes"])}\nБренд машины:
+                                                       {dateRequestDriver["brand"]}\nЦвет машины: {dateRequestDriver["colour"]}\nНомера машины: {dateRequestDriver["numbcar"]}',
+                                                       reply_markup=GeneralKeyboards.single_btn_command_menu)
+                                check = 1
+                                break
+                    if check == 0:
+                        await bot.send_message(message.from_user.id, text_3.t_no_matches, reply_markup=GeneralKeyboards.single_btn_command_menu)
+
+            # if user a passenger
+            elif dataAboutTrip[message.from_user.id]["typeOfMembers"] == "passenger":
+                # Processing data from the database
+                userDataAgreedTrips["data"] = filter_trip_list(
+                    userDataAgreedTrips["data"], dataAboutTrip[message.from_user.id]["tripPointA"], dataAboutTrip[message.from_user.id]["tripPointB"])
+                userData2 = create_new_dict(userDataAgreedTrips["data"])
+                userData2[dataAboutTrip[message.from_user.id]["id_trip"]] = [
+                    dataAboutTrip[message.from_user.id]["tripDates"], dataAboutTrip[message.from_user.id]["tripTimes"]]
+                suitableTripIDs = algorithmForCalculatingSuitableTripsTime(userData2, dataAboutTrip[message.from_user.id]["id_trip"], algorithmForCalculatingSuitableTripsDate(
+                    userData2, dataAboutTrip[message.from_user.id]["id_trip"]), 60)
+
+                if len(suitableTripIDs) == 0:
+                    await bot.send_message(message.from_user.id, text_3.t_no_matches, reply_markup=GeneralKeyboards.single_btn_command_menu)
+                else:
+                    check = 0
+                    for i in suitableTripIDs:
+                        try:
+                            dateRequest = requests.post(f"{BASE_URL}/settrips/agreedTrips", json={
+                                                        "id_passenger": dataAboutUser[message.from_user.id]["user_id"], "id_trip": dataAboutTrip[message.from_user.id]["id_trip"],
+                                                        "id_agreed_trip": i}).json()
+                        except Exception as e:
+                            log_error(e)
+                            await MenuUser.start_state.set()
+                            await bot.send_sticker(message.from_user.id, sticker=open("data/png/file_131068229.png", 'rb'))
+                            await bot.send_message(message.from_user.id, text_1.t_mistake)
+                            ts(1)
+                            await bot.send_message(message.from_user.id, text_2.t_technical_maintenance, reply_markup=GeneralKeyboards.single_btn_command_menu)
+
+                        else:
+                            if dateRequest["action"] == "success" and dateRequest["status"] == "success":
+                                driver_id = next(
+                                    (
+                                        trip.get("id_driver")
+                                        for trip in userDataAgreedTrips["data"]
+                                        if trip.get("id_trip") == i
+                                    ),
+                                    None,
+                                )
+                                try:
+                                    agreedUserData = requests.post(
+                                        f"{BASE_URL}/getusers", json={"id": driver_id}).json()
+                                except Exception as e:
+                                    log_error(e)
+                                    await bot.send_sticker(message.from_user.id, sticker=open("data/png/file_131068229.png", 'rb'))
+                                    await bot.send_message(message.from_user.id, text_1.t_mistake)
+                                    ts(1)
+                                    await bot.send_message(message.from_user.id, text_2.t_technical_maintenance, reply_markup=GeneralKeyboards.single_btn_command_menu)
+                                else:
+                                    if agreedUserData["action"] == "errorData":
+                                        break
+                                    else:
+                                        agreedUserData = agreedUserData["data"]
+                                try:
+                                    dateRequestDriver = requests.post(
+                                        f"{BASE_URL}/gettrips/drivers", json={"user_id": driver_id}).json()["data"][0]
+                                except Exception as e:
+                                    log_error(e)
+                                    await MenuUser.start_state.set()
+                                    await bot.send_sticker(message.from_user.id, sticker=open("data/png/file_131068229.png", 'rb'))
+                                    await bot.send_message(message.from_user.id, text_1.t_mistake)
+                                    ts(1)
+                                    await bot.send_message(message.from_user.id, text_2.t_technical_maintenance, reply_markup=GeneralKeyboards.single_btn_command_menu)
+                                # Notification to the passenger
+                                await bot.send_sticker(message.from_user.id, sticker=open("data/png/file_131068230.png", 'rb'))
+                                await bot.send_message(message.from_user.id, text_3.t_good_1)
+                                ts(1)
+                                await bot.send_message(message.from_user.id, text_3.t_good_2, reply_markup=GeneralKeyboards.single_btn_command_menu)
+                                user = await bot.get_chat(chat_id=agreedUserData["id_tg"])
+                                await bot.send_message(message.from_user.id, f'Имя: {agreedUserData["name"]}\ntg: @{user.username}\nБренд машины:
+                                                       {dateRequestDriver["brand"]}\nЦвет машины: {dateRequestDriver["colour"]}\nНомера машины: {dateRequestDriver["numbcar"]}',
+                                                       reply_markup=GeneralKeyboards.single_btn_command_menu)
+                                # Notification to the driver
+                                await bot.send_sticker(agreedUserData["id_tg"], sticker=open("data/png/file_131068230.png", 'rb'))
+                                await bot.send_message(agreedUserData["id_tg"], text_3.t_good_1)
+                                ts(1)
+                                await bot.send_message(agreedUserData["id_tg"], text_3.t_good_2, reply_markup=GeneralKeyboards.single_btn_command_menu)
+                                await bot.send_message(agreedUserData["id_tg"], f'Имя: {dataAboutUser[message.from_user.id]["user_name"]}\ntg: @{message.from_user.username}\nДата:
+                                                       {format_date_time(dataAboutTrip[message.from_user.id]["tripDates"])}\nВремя:
+                                                       {format_date_time(dataAboutTrip[message.from_user.id]["tripTimes"])}', reply_markup=GeneralKeyboards.single_btn_command_menu)
+                                check = 1
+                                break
+                    if check == 0:
+                        await bot.send_message(message.from_user.id, text_3.t_no_matches, reply_markup=GeneralKeyboards.single_btn_command_menu)
+    else:
+        await bot.send_message(message.from_user.id, text_1.t_time, reply_markup=GeneralKeyboards.single_btn_command_menu)
+
+
+# _ _ _ Admin _ _ _
+
+RegisteredUsers = ["1380181607"]
+
+
+class RegisteredUser(StatesGroup):
+    """Register state"""
+    Register = State()
+
+
+async def start(message: types.Message):
+    """Checks by tg id"""
+    check = sum(int(i) == int(message.from_user.id) for i in RegisteredUsers)
+    if check == 0:
+        await bot.send_message(message.from_user.id, """ru: У вас нет доступа к функционалу бота, свяжитесь с @muslims_elhamdulillah\n
+en: You don't have access to the bot functionality, contact @muslims_elhamdulillah""")
+    else:
+        await RegisteredUser.Register.set()
+        await bot.send_message(message.from_user.id, "ru: Введите Telegram ID\n\nen: Enter the Telegram ID")
+
+
+async def get_user_info(message: types.Message):
+    """Transmits account information by telegram id"""
+    try:
+        user = await bot.get_chat(chat_id=message.text)
+        await bot.send_message(message.from_user.id,
+                               f"""ID: {message.text}
+Username: @{user.username}
+First Name: {user.first_name}
+Last Name: {user.last_name}
+""")
+    except Exception as e:
+        await bot.send_message(message.from_user.id, "ru: Ошибка введенного Telegram ID \n\nen: Error in the Telegram ID entered")
+
+
+# _ _ _ The function of a joint trip _ _ _
+
+
+async def trip_cancellation_button(callback_query: types.CallbackQuery):
+    """
+    Handle the title button callback query
+
+    This function sends message
+
+    :param callback_query: The callback query
+    :type callback_query: types.CallbackQuery
+    """
+    await callback_query.answer("Поиск попутчиков приостановлен")
+
+
+async def get_information_about_fellow_travelers(callback_query: types.CallbackQuery):
+    """
+    Handle the title button callback query
+
+    This function sends message
+
+    :param callback_query: The callback query
+    :type callback_query: types.CallbackQuery
+    """
+    try:
+        dateRequest1: dict
+        dateRequest1 = requests.post(
+            f"{BASE_URL}/checkuser", json={"id_tg": callback_query.from_user.id}).json()
+    except Exception as e:
+        log_error(e)
+        dateRequest1 = {"action": "technical maintenance"}
+    if dateRequest1 != {"action": "technical maintenance"}:
+        trips_id = callback_query.data
+        data = trips_id.replace('[', '').replace(
+            ']', '').replace('\'', '').replace(' ', '')
+        result = data.split(',')
+        try:
+            dateRequest2: dict
+            dateRequest2 = requests.post(
+                f"{BASE_URL}/gettrips/trips/Trips", json="").json()["data"]
+        except Exception as e:
+            log_error(e)
+            dateRequest2 = {"action": "technical maintenance"}
+        if dateRequest2 != {"action": "technical maintenance"}:
+            for i in result:
+                try:
+                    result_id = [d['id']
+                                 for d in dateRequest2 if d['id_trip'] == i][0]
+                    result_date = format_date_time(
+                        [d['tripsdates'] for d in dateRequest2 if d['id_trip'] == i][0])
+                    result_time = format_date_time(
+                        [d['tripstimes'] for d in dateRequest2 if d['id_trip'] == i][0])
+                except:
+                    pass
+
+                try:
+                    dateRequest_user: dict
+                    dateRequest_user = requests.post(
+                        f"{BASE_URL}/getusers", json={"id": f'{result_id}'}).json()["data"]
+                except Exception as e:
+                    log_error(e)
+                    dateRequest_user = {"action": f"technical maintenance {e}"}
+                if dateRequest_user != {"action": "technical maintenance"}:
+                    result_id_tg = dateRequest_user["id_tg"]
+                    user = await bot.get_chat(chat_id=result_id_tg)
+                    result_user_name = dateRequest_user["name"]
+                    await bot.send_message(callback_query.from_user.id, f'Имя: {result_user_name}\ntg: @{user.username}\nДата: {result_date}\nВремя: {result_time}')
+
+        else:
+            await callback_query.answer("Возникла ошибка")
+    else:
+        await callback_query.answer("Возникла ошибка")
+
+# _ _ _ Packing the registration of handlers into functions by groups _ _ _
+
+
+def startReg(dp=dp):
+    dp.register_message_handler(startCommand, commands=["start"], state="*")
+    dp.register_message_handler(startCommand, commands=["menu"], state="*")
+    dp.register_message_handler(startCommand, commands=["start"])
+    dp.register_message_handler(startCommand, commands=["menu"])
+    dp.register_message_handler(mainMenu)
+    dp.register_callback_query_handler(
+        trip_cancellation_button, text="cancel a trip", state="*")
+    dp.register_callback_query_handler(
+        handle_cancel_button, text="cancel", state="*")
+    dp.register_callback_query_handler(
+        handle_title_button, text="title", state="*")
+    dp.register_message_handler(startRegister, state=UserState.start_register)
+    dp.register_message_handler(
+        first_register_name, state=UserState.get_dateAboutUser_name)
+    dp.register_message_handler(
+        first_register_surname, state=UserState.get_dateAboutUser_surname)
+    dp.register_message_handler(
+        first_register_number, state=UserState.get_dateAboutUser_number, content_types=types.ContentType.CONTACT)
+    dp.register_message_handler(
+        first_register_number, state=UserState.get_dateAboutUser_number)
+
+
+def trips(dp=dp):
+    dp.register_message_handler(
+        createTripForUser_typeOfMembers, state=CreateTrip.start_creating)
+    dp.register_message_handler(
+        createTripForUser_carData, state=CreateTrip.get_dateAboutUser_typeOfMembers)
+    dp.register_message_handler(
+        createTripForUser_tripNumberOfPassengers, state=CreateTrip.get_tripNumberOfPassengers)
+    dp.register_callback_query_handler(
+        handle_prev_button_date, text="prev", state=CreateTrip.get_dateAboutUser_carData)
+    dp.register_callback_query_handler(
+        handle_next_button_date, text="next", state=CreateTrip.get_dateAboutUser_carData)
+    dp.register_callback_query_handler(
+        createTripForUser_tripDates_hours, state=CreateTrip.get_dateAboutUser_carData)
+    dp.register_callback_query_handler(
+        createTripForUser_tripDates_minutes, state=CreateTrip.get_dateAbout_tripDates)
+    dp.register_callback_query_handler(
+        createTripForUser_tripTimes, state=CreateTrip.get_dateAbout_tripTimes_minutes)
+
+    dp.register_message_handler(
+        createTripForUser_tripPointA, state=CreateTrip.get_dateAbout_tripTimes)
+    dp.register_message_handler(
+        createTripForUser_tripPointB, state=CreateTrip.get_dateAbout_tripPointA)
+    dp.register_message_handler(
+        createTripForUser_check, state=CreateTrip.get_dateAbout_tripPointB)
+
+
+def car(dp=dp):
+    dp.register_callback_query_handler(
+        handle_prev_button, text="prev", state=RecordingInformationAboutCar.start_state)
+    dp.register_callback_query_handler(
+        handle_next_button, text="next", state=RecordingInformationAboutCar.start_state)
+    dp.register_callback_query_handler(
+        handle_prev_button_model, text="prev", state=RecordingInformationAboutCar.start_state_model)
+    dp.register_callback_query_handler(
+        handle_next_button_model, text="next", state=RecordingInformationAboutCar.start_state_model)
+    dp.register_callback_query_handler(
+        handle_brand_button, state=RecordingInformationAboutCar.start_state)
+    dp.register_callback_query_handler(
+        handle_model_button, state=RecordingInformationAboutCar.start_state_model)
+    dp.register_callback_query_handler(
+        createDriver_dateAboutCarColour, state=RecordingInformationAboutCar.get_dateAboutCarBrand)
+    dp.register_message_handler(createDriver_dateAboutCarNumbCar,
+                                state=RecordingInformationAboutCar.get_dateAboutCarColour)
+    dp.register_message_handler(
+        createDriver_dateAboutCar_check_car, state=RecordingInformationAboutCar.check_data)
+    dp.register_message_handler(functionFoolproof, state=[RecordingInformationAboutCar.start_state,
+                                                          RecordingInformationAboutCar.start_state_model,
+                                                          RecordingInformationAboutCar.get_dateAboutCarBrand,
+                                                          CreateTrip.get_dateAbout_tripTimes_minutes,
+                                                          CreateTrip.get_dateAbout_tripDates,
+                                                          CreateTrip.get_dateAboutUser_carData])  # Foolproof
+
+
+def menuAll(dp=dp):
+    dp.register_message_handler(aboutCommand, state=MenuAbout.start_state)
+    dp.register_message_handler(mainMenu, state=MenuUser.start_state)
+    dp.register_message_handler(
+        aboutCommandRegistered, state=MenuUser.go_to_about)
+    dp.register_message_handler(
+        myProfileCommandRegistered, state=MenuUser.set_profileInfo)
+    dp.register_message_handler(
+        myTripsCommandRegistered, state=MenuUser.set_myTrips)
+
+
+def adminCommands(dp=dp):
+    dp.register_message_handler(start, commands="admin", state="*")
+    dp.register_message_handler(get_user_info, state=RegisteredUser.Register)
+    dp.register_callback_query_handler(
+        get_information_about_fellow_travelers, state="*")
