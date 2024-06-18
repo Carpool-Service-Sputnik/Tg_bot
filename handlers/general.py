@@ -773,8 +773,8 @@ async def handle_model_button(callback_query: types.CallbackQuery):
     global dataAboutCar
 
     await callback_query.answer("")
-    dataAboutCar[callback_query.from_user.id]["carBrand"] += f" {
-        callback_query.data}"
+    dataAboutCar[callback_query.from_user.id]["carBrand"] += f""" {
+        callback_query.data}"""
     await RecordingInformationAboutCar.get_dateAboutCarBrand.set()
     colors = Colors()
     await bot.send_message(callback_query.from_user.id, text_3.t_carColour, reply_markup=colors.inline_keyboard_colors)
@@ -1017,9 +1017,9 @@ async def createTripForUser_tripPointB(message: types.Message):
         await bot.send_message(message.from_user.id, text_3.t_check, reply_markup=GeneralKeyboards.group_yesNo)
         typeOfMembers = "Пассажир" if dataAboutTrip[message.from_user.id][
             "typeOfMembers"] == "passenger" else "Водитель"
-        await bot.send_message(message.from_user.id, f'Тип участника: {typeOfMembers}\nДата поездки: {format_date_time(dataAboutTrip[message.from_user.id]["tripDates"])}\nВремя поездки:
+        await bot.send_message(message.from_user.id, f'''Тип участника: {typeOfMembers}\nДата поездки: {format_date_time(dataAboutTrip[message.from_user.id]["tripDates"])}\nВремя поездки:
                                {format_date_time(dataAboutTrip[message.from_user.id]["tripTimes"])}\nОткуда: {dataAboutTrip[message.from_user.id]["tripPointA"]}\nКуда:
-                               {dataAboutTrip[message.from_user.id]["tripPointB"]}')
+                               {dataAboutTrip[message.from_user.id]["tripPointB"]}''')
     else:
         await bot.send_message(message.from_user.id, text_1.t_foolproof_buttons, reply_markup=GeneralKeyboards.group_districts)
 
@@ -1134,10 +1134,10 @@ async def createTripForUser_check(message: types.Message):
                                 # Notification to the passenger
                                 await bot.send_sticker(agreedUserData["id_tg"], sticker=open("data/png/file_131068230.png", 'rb'))
                                 await bot.send_message(agreedUserData["id_tg"], text_3.t_good_2)
-                                await bot.send_message(agreedUserData["id_tg"], f'Имя: {dataAboutUser[message.from_user.id]["user_name"]}\ntg: @{message.from_user.username}\nДата:
+                                await bot.send_message(agreedUserData["id_tg"], f'''Имя: {dataAboutUser[message.from_user.id]["user_name"]}\ntg: @{message.from_user.username}\nДата:
                                                        {format_date_time(dataAboutTrip[message.from_user.id]["tripDates"])}\nВремя:
                                                        {format_date_time(dataAboutTrip[message.from_user.id]["tripTimes"])}\nБренд машины:
-                                                       {dateRequestDriver["brand"]}\nЦвет машины: {dateRequestDriver["colour"]}\nНомера машины: {dateRequestDriver["numbcar"]}',
+                                                       {dateRequestDriver["brand"]}\nЦвет машины: {dateRequestDriver["colour"]}\nНомера машины: {dateRequestDriver["numbcar"]}''',
                                                        reply_markup=GeneralKeyboards.single_btn_command_menu)
                                 check = 1
                                 break
@@ -1212,17 +1212,17 @@ async def createTripForUser_check(message: types.Message):
                                 ts(1)
                                 await bot.send_message(message.from_user.id, text_3.t_good_2, reply_markup=GeneralKeyboards.single_btn_command_menu)
                                 user = await bot.get_chat(chat_id=agreedUserData["id_tg"])
-                                await bot.send_message(message.from_user.id, f'Имя: {agreedUserData["name"]}\ntg: @{user.username}\nБренд машины:
-                                                       {dateRequestDriver["brand"]}\nЦвет машины: {dateRequestDriver["colour"]}\nНомера машины: {dateRequestDriver["numbcar"]}',
+                                await bot.send_message(message.from_user.id, f'''Имя: {agreedUserData["name"]}\ntg: @{user.username}\nБренд машины:
+                                                       {dateRequestDriver["brand"]}\nЦвет машины: {dateRequestDriver["colour"]}\nНомера машины: {dateRequestDriver["numbcar"]}''',
                                                        reply_markup=GeneralKeyboards.single_btn_command_menu)
                                 # Notification to the driver
                                 await bot.send_sticker(agreedUserData["id_tg"], sticker=open("data/png/file_131068230.png", 'rb'))
                                 await bot.send_message(agreedUserData["id_tg"], text_3.t_good_1)
                                 ts(1)
                                 await bot.send_message(agreedUserData["id_tg"], text_3.t_good_2, reply_markup=GeneralKeyboards.single_btn_command_menu)
-                                await bot.send_message(agreedUserData["id_tg"], f'Имя: {dataAboutUser[message.from_user.id]["user_name"]}\ntg: @{message.from_user.username}\nДата:
+                                await bot.send_message(agreedUserData["id_tg"], f'''Имя: {dataAboutUser[message.from_user.id]["user_name"]}\ntg: @{message.from_user.username}\nДата:
                                                        {format_date_time(dataAboutTrip[message.from_user.id]["tripDates"])}\nВремя:
-                                                       {format_date_time(dataAboutTrip[message.from_user.id]["tripTimes"])}', reply_markup=GeneralKeyboards.single_btn_command_menu)
+                                                       {format_date_time(dataAboutTrip[message.from_user.id]["tripTimes"])}''', reply_markup=GeneralKeyboards.single_btn_command_menu)
                                 check = 1
                                 break
                     if check == 0:
