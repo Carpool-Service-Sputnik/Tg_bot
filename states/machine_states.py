@@ -71,3 +71,9 @@ class MenuAbout(StatesGroup):
     set_FAQ = State()
     set_about = State()
     set_instruction = State()
+
+
+class ProfileMenu(StatesGroup):
+    """Menu about profile"""
+    check_balance = State()
+    set_top_up_balance = State()

@@ -257,11 +257,17 @@ def _extracted_from_GenerationOfInlineButtons_time_(arg0, keyboards, empty_butto
     keyboards.row(empty_button1, empty_button1)
 
 
+class SimpleKeyboardsForReplenishBalance:
+    confirm_button = InlineKeyboardButton(text='Подтвердить', callback_data='confirmation_of_replenishment_of_the_balance',
+                                          )
+    cancel_button = InlineKeyboardButton(text='Отменить', callback_data='canceling_of_replenishment_of_the_balance')
+    confirm_cancel_inline_kb = InlineKeyboardMarkup()
+    confirm_cancel_inline_kb.insert(confirm_button).insert(cancel_button)
 
+    # - - - top up with a certain amount
+    top_up_amounts = [100.0, 200.0, 300.0, 500.0] # Если нужно добавить/изменить сумму, просто добавь в список нужное значение
+    top_up_menu = InlineKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True, row_width=1)
 
-
-
-
-
-
-
+    for amount in top_up_amounts:
+        button = InlineKeyboardButton(text=f"{amount} ₽", callback_data=f'top_up_rubles_{int(amount)}')
+        top_up_menu.insert(button)
