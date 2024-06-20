@@ -312,6 +312,10 @@ async def mainMenu(message: types.Message, state: FSMContext):
     if message.text == "Профиль":
         await myProfileCommandRegisteredFunction(message, state)
     elif message.text == "Мои поездки":
+        # await bot.send_message(message.from_user.id, str(await state.get_state()))
+        # await bot.send_message(message.from_user.id, str(await state.get_state()))
+        # await CheckTripsMenu.start_state.set()
+        # await bot.send_message(message.from_user.id, 'а', reply_markup=GeneralKeyboards.group_check_trips_menu)
         await myTripsCommandRegisteredFunction(message, state)
     elif message.text == "Поддержка":
         await bot.send_message(message.from_user.id, text_2.t_support)
@@ -481,14 +485,76 @@ async def myTripsCommandRegisteredFunction(message: types.Message, state: FSMCon
                                    reply_markup=GeneralKeyboards.single_btn_command_menu)
         elif userData["action"] == "success":
             # Output of user data to the bot
-            await MenuUser.set_myTrips.set()
+            await CheckTripsMenu.start_state.set()
             userData = userData["data"]
             newStr = generate_new_str(userData)
-            await bot.send_message(message.from_user.id, newStr, reply_markup=GeneralKeyboards.single_btn_main)
+            await bot.send_message(message.from_user.id, "О каких поездках хочешь узнать?", reply_markup=GeneralKeyboards.group_check_trips_menu)
+
+
     except Exception as e:
         await MenuUser.set_myTrips.set()
         await bot.send_message(message.from_user.id, text_2.t_no_active_trips,
                                reply_markup=GeneralKeyboards.single_btn_main)
+
+
+async def check_my_trips(message: types.Message, state: FSMContext):
+    """
+    Check My Trips Function
+
+    Function - Checks and displays the user's current or past trips based on the input message
+
+    :param message: a class representing a user's message in a telegram bot
+    :type message: types.Message
+    :param state: For the possibility of further upgrade of the bot
+    :type state: FSMContext
+    :send_message: Information about trips
+    :type: Text
+    """
+    current_date = datetime.now()
+    if message.text == "Текущие поездки":
+        userData = requests.post(f"{BASE_URL}/gettrips/trips", json={
+            "id": f'{dataAboutUser[message.from_user.id]["user_id"]}'}).json()
+        data_list = []
+        for data in userData['data']:
+            trip_status = data['status']
+            trip_date = datetime.strptime(format_date_time(data['tripsdates']), "%d.%m.%Y").date()
+            trip_time_plus = (datetime.strptime(format_date_time(data['tripstimes']), "%H:%M")
+                              + timedelta(minutes=10)).time() # Дополнительные минуты
+
+            if (trip_status == 'agreed' or trip_status == 'waiting') and (current_date.date() <= trip_date)\
+                    and (current_date.time() <= trip_time_plus):
+                data_list.append(data)
+
+        await bot.send_message(message.from_user.id, generate_new_str(data_list))
+
+    elif message.text == "Прошлые поездки":
+        userData = requests.post(f"{BASE_URL}/gettrips/trips", json={
+            "id": f'{dataAboutUser[message.from_user.id]["user_id"]}'}).json()
+        data_list = []
+        for data in userData['data']:
+            trip_status = data['status']
+            trip_date = datetime.strptime(format_date_time(data['tripsdates']), "%d.%m.%Y").date()
+            trip_time_plus = (datetime.strptime(format_date_time(data['tripstimes']), "%H:%M")
+                              + timedelta(minutes=10)).time() # Дополнительные минуты
+
+            if not (trip_status == 'agreed' or trip_status == 'waiting'):
+                data_list.append(data)
+            elif (current_date.date() > trip_date):
+                data_list.append(data)
+            elif (current_date.date() == trip_date):
+                if (current_date.time() > trip_time_plus):
+                    data_list.append(data)
+
+        await bot.send_message(message.from_user.id, generate_new_str(data_list))
+
+    elif message.text == "Вернуться в главное меню":
+        await MenuUser.start_state.set()
+        await bot.send_message(message.from_user.id, f'{text_1.t_welcome}', reply_markup=GeneralKeyboards.mainMenu)
+
+    else:
+        await MenuUser.start_state.set()
+        await bot.send_message(message.from_user.id, text_1.t_foolproof_buttons, reply_markup=GeneralKeyboards.mainMenu)
+
 
 
 # _ _ _ TRIPS _ _ _
@@ -1570,6 +1636,7 @@ def menuAll(dp=dp):
     dp.register_message_handler(
         myTripsCommandRegistered, state=MenuUser.set_myTrips)
     dp.register_callback_query_handler(top_up_handle_callback, state=ProfileMenu.set_top_up_balance)
+    dp.register_message_handler(check_my_trips, state=CheckTripsMenu.start_state)
 
 
 def adminCommands(dp=dp):

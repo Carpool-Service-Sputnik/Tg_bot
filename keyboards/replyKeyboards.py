@@ -43,6 +43,8 @@ class GeneralKeyboards():
     button_suvorovskiy = KeyboardButton("Суворовский")
     btn_top_up_balabce = KeyboardButton("Пополнить баланс")  # Profile menu button
     btn_check_balance = KeyboardButton("Текущий баланс")  # Profile menu button
+    btn_check_current_trips = KeyboardButton("Текущие поездки") # Check trips menu button
+    btn_check_past_trips = KeyboardButton("Прошлые поездки") # Check trips menu button
 
     # Single keyboards
 
@@ -89,6 +91,10 @@ class GeneralKeyboards():
     # - - - Main Menu - - -
     mainMenu = ReplyKeyboardMarkup(resize_keyboard=True).add(btn_profile)
     mainMenu.row(btn_create_trip, btn_my_trips).row(btn_support, btn_about_service)
+
+    # - - - Сurrent or past trips
+    group_check_trips_menu = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True, row_width=2)
+    group_check_trips_menu.add(btn_check_current_trips, btn_check_past_trips).row(btn_main)
 
     # - - - Driver or passenger - - -
     group_status = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)

@@ -77,3 +77,9 @@ class ProfileMenu(StatesGroup):
     """Menu about profile"""
     check_balance = State()
     set_top_up_balance = State()
+
+
+class CheckTripsMenu(StatesGroup):
+    start_state = State()
+    set_current_trips = State()
+    set_past_trips = State()
