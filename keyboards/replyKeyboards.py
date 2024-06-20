@@ -41,6 +41,10 @@ class GeneralKeyboards():
     button_center = KeyboardButton("Центр")
     button_levencovka = KeyboardButton("Левенцовка")
     button_suvorovskiy = KeyboardButton("Суворовский")
+    btn_top_up_balabce = KeyboardButton("Пополнить баланс")  # Profile menu button
+    btn_check_balance = KeyboardButton("Текущий баланс")  # Profile menu button
+    btn_check_current_trips = KeyboardButton("Текущие поездки") # Check trips menu button
+    btn_check_past_trips = KeyboardButton("Прошлые поездки") # Check trips menu button
 
     # Single keyboards
 
@@ -60,8 +64,12 @@ class GeneralKeyboards():
     single_btn_command_menu = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
     single_btn_command_menu.add(btn_command_menu)
 
+    # - - - Profile buttons: About top up and check balance - - -
+    group_profileMenu = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True, row_width=2)
+    group_profileMenu.add(btn_check_balance, btn_top_up_balabce, btn_main)
+
     # - - - Send number - - -
-    single_send_number = ReplyKeyboardMarkup(resize_keyboard=True,one_time_keyboard=True)
+    single_send_number = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
     single_send_number.add(btn_send_number)
 
     # Group keyboards
@@ -71,14 +79,22 @@ class GeneralKeyboards():
     group_startMenu.row(btn_about_service)
 
     # - - - About service Menu not registered - - -
-    group_aboutServiceMenu = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True).add(btn_description, btn_rules, btn_questions, btn_back)
+    group_aboutServiceMenu = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True).add(btn_description,
+                                                                                                   btn_rules,
+                                                                                                   btn_questions,
+                                                                                                   btn_back)
 
     # - - - About service Menu - - -
-    group_aboutServiceMenuRegistered = ReplyKeyboardMarkup(resize_keyboard=True).add(btn_description, btn_rules).row(btn_questions, btn_main)
+    group_aboutServiceMenuRegistered = ReplyKeyboardMarkup(resize_keyboard=True).add(btn_description, btn_rules).row(
+        btn_questions, btn_main)
 
     # - - - Main Menu - - -
     mainMenu = ReplyKeyboardMarkup(resize_keyboard=True).add(btn_profile)
     mainMenu.row(btn_create_trip, btn_my_trips).row(btn_support, btn_about_service)
+
+    # - - - Сurrent or past trips
+    group_check_trips_menu = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True, row_width=2)
+    group_check_trips_menu.add(btn_check_current_trips, btn_check_past_trips).row(btn_main)
 
     # - - - Driver or passenger - - -
     group_status = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
@@ -91,5 +107,3 @@ class GeneralKeyboards():
     # - - - Three popular points (districts) in the city of Rostov-on-Don - - -
     group_districts = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True, row_width=2)
     group_districts.add(button_levencovka, button_suvorovskiy, button_center)
-
-

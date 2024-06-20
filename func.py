@@ -137,8 +137,6 @@ def format_date_time(date_time: str):
         return []
 
 
-
-
 def generate_new_str(user_data):
     """Creates a row depending on the number of items in the list"""
     new_str = ""
