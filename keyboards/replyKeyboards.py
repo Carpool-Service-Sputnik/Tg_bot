@@ -52,7 +52,7 @@ class GeneralKeyboards():
 
     # - - - Main - - -
     single_btn_main = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=False)
-    single_btn_main.add(btn_main,btn_become)
+    single_btn_main.add(btn_main)
 
     # - - - Command Start - - -
     single_btn_command_start = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
@@ -89,6 +89,10 @@ class GeneralKeyboards():
     # - - - Driver or passenger - - -
     group_status = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
     group_status.add(btn_status_P, btn_status_D)
+
+    # - - - Become menu - - -
+    group_become = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=False)
+    group_become.add(btn_main,btn_become)
 
     # - - - Yes or No - - -
     group_yesNo = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
