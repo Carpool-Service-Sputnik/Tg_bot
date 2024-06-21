@@ -3,6 +3,7 @@ from datetime import time
 from datetime import timedelta
 from aiogram import types
 from aiogram.dispatcher import FSMContext
+import keyboards.inlineKeyboards
 from loader import ts
 from loader import bot
 from loader import dp
@@ -302,7 +303,7 @@ async def mainMenu(message: types.Message, state: FSMContext):
     elif message.text == "Мои поездки":
         await myTripsCommandRegisteredFunction(message, state)
     elif message.text == "Поддержка":
-        await bot.send_message(message.from_user.id, text_2.t_support)
+        await bot.send_message(message.from_user.id, text_2.t_support,reply_markup=keyboards.inlineKeyboards.supportkb)
     elif message.text == "О сервисе":
         await MenuUser.go_to_about.set()
         await bot.send_message(message.from_user.id, text_1.t_about, reply_markup=GeneralKeyboards.group_aboutServiceMenuRegistered)
@@ -354,6 +355,12 @@ async def aboutCommandRegistered(message: types.Message):
         await bot.send_message(message.from_user.id, text_1.t_foolproof_buttons, reply_markup=GeneralKeyboards.mainMenu)
 
 
+async def become_driver_end(message: types.Message, state: FSMContext):
+    if message.text == "В главное меню":
+        await MenuUser.start_state.set()
+        await bot.send_message(message.from_user.id, f'{text_1.t_welcome}', reply_markup=GeneralKeyboards.mainMenu)
+
+
 async def myProfileCommandRegistered(message: types.Message, state: FSMContext):
     """
     My profile info
@@ -364,11 +371,18 @@ async def myProfileCommandRegistered(message: types.Message, state: FSMContext):
     :Returns to the main menu, sending information about a section
     """
     await MenuUser.start_state.set()
-    if message.text != "Вернуться в главное меню":
+    if message.text == "Вернуться в главное меню":
         # Foolproof
-        await bot.send_message(message.from_user.id, text_1.t_foolproof_buttons, reply_markup=GeneralKeyboards.mainMenu)
-    else:
         await bot.send_message(message.from_user.id, f'{text_1.t_welcome}', reply_markup=GeneralKeyboards.mainMenu)
+    elif message.text == "Стать водителем":
+        await bot.send_message(message.from_user.id, f'{text_1.t_become_1}',
+                               reply_markup=GeneralKeyboards.single_btn_become_end)
+        await bot.send_message(message.from_user.id, f'{text_1.t_become_2}',
+                               reply_markup=keyboards.inlineKeyboards.becomekb)
+
+        await BecomeDriver.start_become_dr.set()
+    else:
+        await bot.send_message(message.from_user.id, text_1.t_foolproof_buttons, reply_markup=GeneralKeyboards.mainMenu)
 
 
 async def myProfileCommandRegisteredFunction(message: types.Message, state: FSMContext):
@@ -1420,6 +1434,7 @@ def car(dp=dp):
 
 def menuAll(dp=dp):
     dp.register_message_handler(aboutCommand, state=MenuAbout.start_state)
+    dp.register_message_handler(become_driver_end, state=BecomeDriver.start_become_dr)
     dp.register_message_handler(mainMenu, state=MenuUser.start_state)
     dp.register_message_handler(
         aboutCommandRegistered, state=MenuUser.go_to_about)

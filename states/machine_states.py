@@ -71,3 +71,9 @@ class MenuAbout(StatesGroup):
     set_FAQ = State()
     set_about = State()
     set_instruction = State()
+
+class BecomeDriver(StatesGroup):
+    """Process Becoming Driver"""
+    start_become_dr = State()
+    set_car_num = State()
+    set_car_color = State()

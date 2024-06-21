@@ -27,6 +27,8 @@ class GeneralKeyboards():
     btn_main_menu = KeyboardButton('Главное меню')
     btn_main = KeyboardButton('Вернуться в главное меню')
     btn_profile = KeyboardButton('Профиль')
+    btn_become = KeyboardButton('Стать водителем')
+    btn_become_cancel = KeyboardButton('В главное меню')
     btn_my_trips = KeyboardButton('Мои поездки')
     btn_support = KeyboardButton('Поддержка')
     btn_create_trip = KeyboardButton('Создать поездку')
@@ -49,12 +51,16 @@ class GeneralKeyboards():
     single_btn_next.add(btn_next)
 
     # - - - Main - - -
-    single_btn_main = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
-    single_btn_main.add(btn_main)
+    single_btn_main = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=False)
+    single_btn_main.add(btn_main,btn_become)
 
     # - - - Command Start - - -
     single_btn_command_start = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
     single_btn_command_start.add(btn_command_start)
+
+    # - - - Become - - -
+    single_btn_become_end = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=False)
+    single_btn_become_end.add(btn_become_cancel)
 
     # - - - Command Start - - -
     single_btn_command_menu = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
