@@ -363,12 +363,20 @@ async def myProfileCommandRegistered(message: types.Message, state: FSMContext):
 
     :Returns to the main menu, sending information about a section
     """
+    balance = 200.1
     await MenuUser.start_state.set()
-    if message.text != "Вернуться в главное меню":
+    if message.text == "Вернуться в главное меню":
+        await bot.send_message(message.from_user.id, f'{text_1.t_welcome}', reply_markup=GeneralKeyboards.mainMenu)
+    elif message.text == 'Текущий баланс':
+        balance_text = f'Ваш баланс: {balance} ₽'
+        await bot.send_message(message.from_user.id, balance_text, reply_markup=GeneralKeyboards.mainMenu)
+    elif message.text == 'Пополнить баланс':
+        await ProfileMenu.set_top_up_balance.set()
+        await bot.send_message(message.from_user.id, 'Выбери сумму пополнения', reply_to_message_id=message.message_id,
+                               reply_markup=SimpleKeyboardsForReplenishBalance.top_up_menu)
+    else:
         # Foolproof
         await bot.send_message(message.from_user.id, text_1.t_foolproof_buttons, reply_markup=GeneralKeyboards.mainMenu)
-    else:
-        await bot.send_message(message.from_user.id, f'{text_1.t_welcome}', reply_markup=GeneralKeyboards.mainMenu)
 
 
 async def myProfileCommandRegisteredFunction(message: types.Message, state: FSMContext):
@@ -398,7 +406,7 @@ async def myProfileCommandRegisteredFunction(message: types.Message, state: FSMC
         userData = userData["data"]
         await bot.send_message(message.from_user.id, f"Имя: {userData['name']}\n"
                                f"Фамилия: {userData['surname']}\n"
-                               f"Номер: {userData['numb']}\n", reply_markup=GeneralKeyboards.single_btn_main)
+                               f"Номер: {userData['numb']}\n", reply_markup=GeneralKeyboards.group_profileMenu)
     elif userData["action"] == "technical maintenance":
         # Output of the text about the occurrence of an error in the database to the user
         await bot.send_sticker(message.from_user.id, sticker=open("data/png/file_131068229.png", 'rb'))
@@ -441,7 +449,7 @@ async def myTripsCommandRegisteredFunction(message: types.Message, state: FSMCon
     # Connection.accessing the database using an exception
     try:
         userData = requests.post(f"{BASE_URL}/gettrips/trips", json={
-                                 "id": f'{dataAboutUser[message.from_user.id]["user_id"]}'}).json()
+            "id": f'{dataAboutUser[message.from_user.id]["user_id"]}'}).json()
     except Exception as e:
         log_error(e)
         userData = {"action": "technical maintenance"}
@@ -451,16 +459,86 @@ async def myTripsCommandRegisteredFunction(message: types.Message, state: FSMCon
             await bot.send_sticker(message.from_user.id, sticker=open("data/png/file_131068229.png", 'rb'))
             await bot.send_message(message.from_user.id, text_1.t_mistake)
             ts(1)
-            await bot.send_message(message.from_user.id, text_2.t_technical_maintenance, reply_markup=GeneralKeyboards.single_btn_command_menu)
+            await bot.send_message(message.from_user.id, text_2.t_technical_maintenance,
+                                   reply_markup=GeneralKeyboards.single_btn_command_menu)
         elif userData["action"] == "success":
             # Output of user data to the bot
-            await MenuUser.set_myTrips.set()
+            await CheckTripsMenu.start_state.set()
             userData = userData["data"]
             newStr = generate_new_str(userData)
-            await bot.send_message(message.from_user.id, newStr, reply_markup=GeneralKeyboards.single_btn_main)
+            await bot.send_message(message.from_user.id, "О каких поездках хочешь узнать?",
+                                   reply_markup=GeneralKeyboards.group_check_trips_menu)
+
     except Exception as e:
         await MenuUser.set_myTrips.set()
-        await bot.send_message(message.from_user.id, text_2.t_no_active_trips, reply_markup=GeneralKeyboards.single_btn_main)
+        await bot.send_message(message.from_user.id, text_2.t_no_active_trips,
+                               reply_markup=GeneralKeyboards.single_btn_main)
+
+
+async def check_my_trips(message: types.Message, state: FSMContext):
+    """
+    Check My Trips Function
+
+    Function - Checks and displays the user's current or past trips based on the input message
+
+    :param message: a class representing a user's message in a telegram bot
+    :type message: types.Message
+    :param state: For the possibility of further upgrade of the bot
+    :type state: FSMContext
+    :send_message: Information about trips
+    :type: Text
+    """
+    current_datetime = datetime.now()
+    if message.text == "Текущие поездки":
+        userData = requests.post(f"{BASE_URL}/gettrips/trips", json={
+            "id": f'{dataAboutUser[message.from_user.id]["user_id"]}'}).json()
+        data_list = []
+        for data in userData['data']:
+            trip_status = data['status']
+            trip_date = datetime.strptime(format_date_time(data['tripsdates']), "%d.%m.%Y").date()
+            trip_time = (datetime.strptime(format_date_time(data['tripstimes']), "%H:%M")).time()
+            trip_datetime = datetime.combine(trip_date, trip_time) + timedelta(minutes=10) # Дополнительные минуты
+
+            if (trip_status in ['agreed', 'waiting']) and (current_datetime <= trip_datetime):
+                data_list.append(data)
+        await MenuUser.start_state.set()
+        if len(data_list) > 0:
+            await bot.send_message(message.from_user.id, generate_new_str(data_list),
+                                   reply_markup=GeneralKeyboards.mainMenu)
+        else:
+            await bot.send_message(message.from_user.id, "У вас нет актуальных поездок",
+                                   reply_markup=GeneralKeyboards.mainMenu)
+
+    elif message.text == "Прошлые поездки":
+        userData = requests.post(f"{BASE_URL}/gettrips/trips", json={
+            "id": f'{dataAboutUser[message.from_user.id]["user_id"]}'}).json()
+        data_list = []
+        for data in userData['data']:
+            trip_status = data['status']
+            trip_date = datetime.strptime(format_date_time(data['tripsdates']), "%d.%m.%Y").date()
+            trip_time = (datetime.strptime(format_date_time(data['tripstimes']), "%H:%M")).time()
+            trip_datetime = datetime.combine(trip_date, trip_time) + timedelta(minutes=10) # Дополнительные минуты
+
+            if not (trip_status == 'agreed' or trip_status == 'waiting'):
+                data_list.append(data)
+            elif current_datetime >= trip_datetime:
+                data_list.append(data)
+
+        await MenuUser.start_state.set()
+        if len(data_list) > 0:
+            await bot.send_message(message.from_user.id, generate_new_str(data_list),
+                                   reply_markup=GeneralKeyboards.mainMenu)
+        else:
+            await bot.send_message(message.from_user.id, "Вы еще не совершали поездок",
+                                   reply_markup=GeneralKeyboards.mainMenu)
+
+    elif message.text == "Вернуться в главное меню":
+        await MenuUser.start_state.set()
+        await bot.send_message(message.from_user.id, f'{text_1.t_welcome}', reply_markup=GeneralKeyboards.mainMenu)
+
+    else:
+        await MenuUser.start_state.set()
+        await bot.send_message(message.from_user.id, text_1.t_foolproof_buttons, reply_markup=GeneralKeyboards.mainMenu)
 
 
 # _ _ _ TRIPS _ _ _
@@ -1339,6 +1417,44 @@ async def get_information_about_fellow_travelers(callback_query: types.CallbackQ
     else:
         await callback_query.answer("Возникла ошибка")
 
+
+async def top_up_handle_callback(callback_query: types.CallbackQuery, state: FSMContext):
+    """
+    Handle the replenishment buttons callback query
+
+    This function handles the accept and reject balance replenishment buttons
+
+    :param callback_query: The callback query
+    :type callback_query: types.CallbackQuery
+    :param state: For the possibility of further upgrade of the bot
+    :type state: FSMContext
+    """
+    global amount
+    action = callback_query.data
+
+    if 'top_up_rubles_' in action:
+        amount = float(action.replace('top_up_rubles_', ''))
+        await bot.answer_callback_query(callback_query.id)
+        await bot.delete_message(chat_id=callback_query.from_user.id, message_id=callback_query.message.message_id)
+        await bot.send_message(callback_query.from_user.id, f'Подтвердите пополнение\n\nСумма пополнения: {amount} ₽',
+                               reply_markup=SimpleKeyboardsForReplenishBalance.confirm_cancel_inline_kb)
+
+    if action == 'confirmation_of_replenishment_of_the_balance':
+        await bot.answer_callback_query(callback_query.id)
+        await bot.delete_message(chat_id=callback_query.from_user.id, message_id=callback_query.message.message_id)
+        await bot.send_message(callback_query.from_user.id, f'Пополнение подтверждено! +{amount} ₽',
+                               reply_markup=GeneralKeyboards.mainMenu)
+        await MenuUser.start_state.set()
+
+    elif action == 'canceling_of_replenishment_of_the_balance':
+        await bot.answer_callback_query(callback_query.id)
+        await bot.delete_message(chat_id=callback_query.from_user.id, message_id=callback_query.message.message_id)
+        await bot.send_message(callback_query.from_user.id, 'Пополнение отменено!',
+                               reply_markup=GeneralKeyboards.mainMenu)
+        await MenuUser.start_state.set()
+
+
+
 # _ _ _ Packing the registration of handlers into functions by groups _ _ _
 
 
@@ -1427,6 +1543,8 @@ def menuAll(dp=dp):
         myProfileCommandRegistered, state=MenuUser.set_profileInfo)
     dp.register_message_handler(
         myTripsCommandRegistered, state=MenuUser.set_myTrips)
+    dp.register_callback_query_handler(top_up_handle_callback, state=ProfileMenu.set_top_up_balance)
+    dp.register_message_handler(check_my_trips, state=CheckTripsMenu.start_state)
 
 
 def adminCommands(dp=dp):
