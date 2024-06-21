@@ -6,7 +6,6 @@ class text_1():
     A class representing text for use in bot scripts
 
     IMPORTANT: The text is mainly before registration and during registration
-
     Example of using a class:
     """
     t_start_1 = "Привет! Меня зовут Белка!"
