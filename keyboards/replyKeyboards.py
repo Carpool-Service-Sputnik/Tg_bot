@@ -68,7 +68,7 @@ class GeneralKeyboards():
 
     # - - - Profile buttons: About top up and check balance - - -
     group_profileMenu = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True, row_width=2)
-    group_profileMenu.add(btn_check_balance, btn_top_up_balabce, btn_main,btn_become)
+    group_profileMenu.add(btn_check_balance, btn_top_up_balabce, btn_main, btn_become)# +стать водителем
 
     # - - - Command Start - - -
     single_btn_command_menu = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)

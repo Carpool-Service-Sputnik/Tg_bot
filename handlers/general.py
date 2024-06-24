@@ -127,8 +127,6 @@ async def startRegister(message: types.Message):
 
 
 # _ _ _ Start_register _ _ _
-
-
 async def first_register_name(message: types.Message, state: FSMContext):
     """
     first_register_name function
