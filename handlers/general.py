@@ -419,7 +419,7 @@ async def myProfileCommandRegisteredFunction(message: types.Message, state: FSMC
         userData = userData["data"]
         await bot.send_message(message.from_user.id, f"Имя: {userData['name']}\n"
                                f"Фамилия: {userData['surname']}\n"
-                               f"Номер: {userData['numb']}\n", reply_markup=GeneralKeyboards.group_become)
+                               f"Номер: {userData['numb']}\n", reply_markup=GeneralKeyboards.group_profileMenu)
     elif userData["action"] == "technical maintenance":
         # Output of the text about the occurrence of an error in the database to the user
         await bot.send_sticker(message.from_user.id, sticker=open("data/png/file_131068229.png", 'rb'))
