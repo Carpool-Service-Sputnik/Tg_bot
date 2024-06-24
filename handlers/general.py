@@ -462,7 +462,7 @@ async def myTripsCommandRegisteredFunction(message: types.Message, state: FSMCon
     # Connection.accessing the database using an exception
     try:
         userData = requests.post(f"{BASE_URL}/gettrips/trips", json={
-                                 "id": f'{dataAboutUser[message.from_user.id]["user_id"]}'}).json()
+            "id": f'{dataAboutUser[message.from_user.id]["user_id"]}'}).json()
     except Exception as e:
         log_error(e)
         userData = {"action": "technical maintenance"}
@@ -472,16 +472,86 @@ async def myTripsCommandRegisteredFunction(message: types.Message, state: FSMCon
             await bot.send_sticker(message.from_user.id, sticker=open("data/png/file_131068229.png", 'rb'))
             await bot.send_message(message.from_user.id, text_1.t_mistake)
             ts(1)
-            await bot.send_message(message.from_user.id, text_2.t_technical_maintenance, reply_markup=GeneralKeyboards.single_btn_command_menu)
+            await bot.send_message(message.from_user.id, text_2.t_technical_maintenance,
+                                   reply_markup=GeneralKeyboards.single_btn_command_menu)
         elif userData["action"] == "success":
             # Output of user data to the bot
-            await MenuUser.set_myTrips.set()
+            await CheckTripsMenu.start_state.set()
             userData = userData["data"]
             newStr = generate_new_str(userData)
-            await bot.send_message(message.from_user.id, newStr, reply_markup=GeneralKeyboards.single_btn_main)
+            await bot.send_message(message.from_user.id, "О каких поездках хочешь узнать?",
+                                   reply_markup=GeneralKeyboards.group_check_trips_menu)
+
     except Exception as e:
         await MenuUser.set_myTrips.set()
-        await bot.send_message(message.from_user.id, text_2.t_no_active_trips, reply_markup=GeneralKeyboards.single_btn_main)
+        await bot.send_message(message.from_user.id, text_2.t_no_active_trips,
+                               reply_markup=GeneralKeyboards.single_btn_main)
+
+
+async def check_my_trips(message: types.Message, state: FSMContext):
+    """
+    Check My Trips Function
+
+    Function - Checks and displays the user's current or past trips based on the input message
+
+    :param message: a class representing a user's message in a telegram bot
+    :type message: types.Message
+    :param state: For the possibility of further upgrade of the bot
+    :type state: FSMContext
+    :send_message: Information about trips
+    :type: Text
+    """
+    current_datetime = datetime.now()
+    if message.text == "Текущие поездки":
+        userData = requests.post(f"{BASE_URL}/gettrips/trips", json={
+            "id": f'{dataAboutUser[message.from_user.id]["user_id"]}'}).json()
+        data_list = []
+        for data in userData['data']:
+            trip_status = data['status']
+            trip_date = datetime.strptime(format_date_time(data['tripsdates']), "%d.%m.%Y").date()
+            trip_time = (datetime.strptime(format_date_time(data['tripstimes']), "%H:%M")).time()
+            trip_datetime = datetime.combine(trip_date, trip_time) + timedelta(minutes=10) # Дополнительные минуты
+
+            if (trip_status in ['agreed', 'waiting']) and (current_datetime <= trip_datetime):
+                data_list.append(data)
+        await MenuUser.start_state.set()
+        if len(data_list) > 0:
+            await bot.send_message(message.from_user.id, generate_new_str(data_list),
+                                   reply_markup=GeneralKeyboards.mainMenu)
+        else:
+            await bot.send_message(message.from_user.id, "У вас нет актуальных поездок",
+                                   reply_markup=GeneralKeyboards.mainMenu)
+
+    elif message.text == "Прошлые поездки":
+        userData = requests.post(f"{BASE_URL}/gettrips/trips", json={
+            "id": f'{dataAboutUser[message.from_user.id]["user_id"]}'}).json()
+        data_list = []
+        for data in userData['data']:
+            trip_status = data['status']
+            trip_date = datetime.strptime(format_date_time(data['tripsdates']), "%d.%m.%Y").date()
+            trip_time = (datetime.strptime(format_date_time(data['tripstimes']), "%H:%M")).time()
+            trip_datetime = datetime.combine(trip_date, trip_time) + timedelta(minutes=10) # Дополнительные минуты
+
+            if not (trip_status == 'agreed' or trip_status == 'waiting'):
+                data_list.append(data)
+            elif current_datetime >= trip_datetime:
+                data_list.append(data)
+
+        await MenuUser.start_state.set()
+        if len(data_list) > 0:
+            await bot.send_message(message.from_user.id, generate_new_str(data_list),
+                                   reply_markup=GeneralKeyboards.mainMenu)
+        else:
+            await bot.send_message(message.from_user.id, "Вы еще не совершали поездок",
+                                   reply_markup=GeneralKeyboards.mainMenu)
+
+    elif message.text == "Вернуться в главное меню":
+        await MenuUser.start_state.set()
+        await bot.send_message(message.from_user.id, f'{text_1.t_welcome}', reply_markup=GeneralKeyboards.mainMenu)
+
+    else:
+        await MenuUser.start_state.set()
+        await bot.send_message(message.from_user.id, text_1.t_foolproof_buttons, reply_markup=GeneralKeyboards.mainMenu)
 
 
 async def check_my_trips(message: types.Message, state: FSMContext):
