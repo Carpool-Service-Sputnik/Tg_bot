@@ -1,1 +1,35 @@
 
+1. 24-Jun-2024 04:42:38 PM - - - 'summ'
+2. 24-Jun-2024 04:42:38 PM - - - 'summ'
+3. 25-Jun-2024 11:34:45 AM - - - HTTPConnectionPool(host='127.0.0.1', port=5001): Max retries exceeded with url: /gettrips/trips/suitableTrips (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001F618D2B250>: Failed to establish a new connection: [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение'))
+4. 25-Jun-2024 11:34:45 AM - - - HTTPConnectionPool(host='127.0.0.1', port=5001): Max retries exceeded with url: /gettrips/trips/suitableTrips (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001F618D2B250>: Failed to establish a new connection: [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение'))
+5. 25-Jun-2024 12:01:57 PM - - - 'balance'
+6. 25-Jun-2024 12:01:57 PM - - - 'balance'
+7. 25-Jun-2024 12:05:40 PM - - - 'balance'
+8. 25-Jun-2024 12:05:40 PM - - - 'balance'
+9. 25-Jun-2024 12:07:00 PM - - - 'balance'
+10. 25-Jun-2024 12:07:00 PM - - - 'balance'
+11. 25-Jun-2024 12:10:26 PM - - - 'balance'
+12. 25-Jun-2024 12:10:26 PM - - - 'balance'
+13. 25-Jun-2024 12:12:56 PM - - - 'balance'
+14. 25-Jun-2024 12:12:56 PM - - - 'balance'
+15. 25-Jun-2024 12:13:38 PM - - - 'balance'
+16. 25-Jun-2024 12:13:38 PM - - - 'balance'
+17. 25-Jun-2024 12:31:20 PM - - - 'body' must be a bytes-like object, file-like object, or iterable. Instead was 588649190
+18. 25-Jun-2024 12:31:20 PM - - - 'body' must be a bytes-like object, file-like object, or iterable. Instead was 588649190
+19. 25-Jun-2024 12:31:47 PM - - - 'body' must be a bytes-like object, file-like object, or iterable. Instead was 588649190
+20. 25-Jun-2024 12:31:47 PM - - - 'body' must be a bytes-like object, file-like object, or iterable. Instead was 588649190
+21. 25-Jun-2024 12:33:25 PM - - - 'body' must be a bytes-like object, file-like object, or iterable. Instead was 588649190
+22. 25-Jun-2024 12:33:25 PM - - - 'body' must be a bytes-like object, file-like object, or iterable. Instead was 588649190
+23. 25-Jun-2024 12:34:02 PM - - - 'body' must be a bytes-like object, file-like object, or iterable. Instead was 588649190
+24. 25-Jun-2024 12:34:02 PM - - - 'body' must be a bytes-like object, file-like object, or iterable. Instead was 588649190
+25. 25-Jun-2024 12:35:06 PM - - - 'body' must be a bytes-like object, file-like object, or iterable. Instead was 588649190
+26. 25-Jun-2024 12:35:06 PM - - - 'body' must be a bytes-like object, file-like object, or iterable. Instead was 588649190
+27. 25-Jun-2024 12:45:51 PM - - - 'id'
+28. 25-Jun-2024 12:45:51 PM - - - 'id'
+29. 25-Jun-2024 12:46:59 PM - - - 'id'
+30. 25-Jun-2024 12:46:59 PM - - - 'id'
+31. 25-Jun-2024 12:47:33 PM - - - 'id'
+32. 25-Jun-2024 12:47:33 PM - - - 'id'
+33. 25-Jun-2024 12:47:50 PM - - - 'id'
+34. 25-Jun-2024 12:47:50 PM - - - 'id'

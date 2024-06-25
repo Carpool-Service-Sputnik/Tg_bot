@@ -354,7 +354,7 @@ async def aboutCommandRegistered(message: types.Message):
         await bot.send_message(message.from_user.id, text_1.t_foolproof_buttons, reply_markup=GeneralKeyboards.mainMenu)
 
 
-async def myProfileCommandRegistered(message: types.Message, state: FSMContext):
+async def myProfileCommandRegistered(message: types.Message, state: FSMContext): #DDD
     """
     My profile info
 
@@ -363,11 +363,21 @@ async def myProfileCommandRegistered(message: types.Message, state: FSMContext):
 
     :Returns to the main menu, sending information about a section
     """
-    balance = 200.1
+    
+    
     await MenuUser.start_state.set()
     if message.text == "Вернуться в главное меню":
         await bot.send_message(message.from_user.id, f'{text_1.t_welcome}', reply_markup=GeneralKeyboards.mainMenu)
     elif message.text == 'Текущий баланс':
+
+        try:
+            balance: dict
+            balance = requests.post( 
+            f"{BASE_URL}/balance/getusers", json={"user_id": dataAboutUser[message.from_user.id]["user_id"]}).json()["balance"]
+            
+        except Exception as e:
+            log_error(e)
+
         balance_text = f'Ваш баланс: {balance} ₽'
         await bot.send_message(message.from_user.id, balance_text, reply_markup=GeneralKeyboards.mainMenu)
     elif message.text == 'Пополнить баланс':
@@ -1418,7 +1428,7 @@ async def get_information_about_fellow_travelers(callback_query: types.CallbackQ
         await callback_query.answer("Возникла ошибка")
 
 
-async def top_up_handle_callback(callback_query: types.CallbackQuery, state: FSMContext):
+async def top_up_handle_callback(callback_query: types.CallbackQuery, state: FSMContext): #DDD
     """
     Handle the replenishment buttons callback query
 
@@ -1429,8 +1439,10 @@ async def top_up_handle_callback(callback_query: types.CallbackQuery, state: FSM
     :param state: For the possibility of further upgrade of the bot
     :type state: FSMContext
     """
-    global amount
+    global amount, dataAboutUser
     action = callback_query.data
+    
+    
 
     if 'top_up_rubles_' in action:
         amount = float(action.replace('top_up_rubles_', ''))
@@ -1438,12 +1450,30 @@ async def top_up_handle_callback(callback_query: types.CallbackQuery, state: FSM
         await bot.delete_message(chat_id=callback_query.from_user.id, message_id=callback_query.message.message_id)
         await bot.send_message(callback_query.from_user.id, f'Подтвердите пополнение\n\nСумма пополнения: {amount} ₽',
                                reply_markup=SimpleKeyboardsForReplenishBalance.confirm_cancel_inline_kb)
-
+        
+                               
     if action == 'confirmation_of_replenishment_of_the_balance':
         await bot.answer_callback_query(callback_query.id)
         await bot.delete_message(chat_id=callback_query.from_user.id, message_id=callback_query.message.message_id)
         await bot.send_message(callback_query.from_user.id, f'Пополнение подтверждено! +{amount} ₽',
                                reply_markup=GeneralKeyboards.mainMenu)
+        
+        # sending request to the server to update db 
+        try:
+            user_id = dataAboutUser[callback_query.from_user.id]["user_id"]
+            balance_response = requests.post(
+                f"{BASE_URL}/balance/recharging",
+                json={"user_id": user_id, "credit": amount}
+            )
+            print(balance_response)
+            balance_response.raise_for_status()
+            # balance = balance_response.json()["balance"]
+            
+        except Exception as e:
+            log_error(e)
+        
+        
+
         await MenuUser.start_state.set()
 
     elif action == 'canceling_of_replenishment_of_the_balance':
