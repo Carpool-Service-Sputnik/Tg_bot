@@ -31,6 +31,9 @@ class UserState(StatesGroup):
     get_dateAboutUser_location = State()
     go_menu = State()
 
+class AgreementUser(StatesGroup):
+    """User Agreement"""
+    get_user_info=State()
 
 class CreateTrip(StatesGroup):
     """Creating a trip state"""

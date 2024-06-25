@@ -19,6 +19,7 @@ class GeneralKeyboards():
     """
     # Buttons
     btn_sign = KeyboardButton('Зарегистрироваться! 🐣')
+    btn_agreement_accept = KeyboardButton('Согласиться')
     btn_about_service = KeyboardButton('О сервисе')
     btn_description = KeyboardButton('Описание')
     btn_rules = KeyboardButton('Правила сервиса')
@@ -75,8 +76,12 @@ class GeneralKeyboards():
     # Group keyboards
 
     # - - - Start Menu - - -
-    group_startMenu = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True).add(btn_sign)
+    group_startMenu = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=False).add(btn_sign)
     group_startMenu.row(btn_about_service)
+
+    # - - - User Agreement -  - -
+    group_agreement = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+    group_agreement.row(btn_agreement_accept)
 
     # - - - About service Menu not registered - - -
     group_aboutServiceMenu = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True).add(btn_description, btn_rules, btn_questions, btn_back)

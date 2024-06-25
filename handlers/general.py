@@ -3,6 +3,8 @@ from datetime import time
 from datetime import timedelta
 from aiogram import types
 from aiogram.dispatcher import FSMContext
+
+import keyboards.inlineKeyboards
 from loader import ts
 from loader import bot
 from loader import dp
@@ -115,14 +117,39 @@ async def startRegister(message: types.Message):
         await MenuAbout.start_state.set()
         await bot.send_message(message.from_user.id, text_1.t_time, reply_markup=GeneralKeyboards.group_aboutServiceMenu)
     elif message.text == "Зарегистрироваться! 🐣":
-        await UserState.get_dateAboutUser_name.set()
-        ts(1)
-        await bot.send_message(message.from_user.id, text_1.t_reg_name_1)
-        ts(1)
-        await bot.send_message(message.from_user.id, text_1.t_reg_name_2)
+        await AgreementUser.get_user_info.set()
+        await bot.send_message(message.from_user.id, f'{text_1.t_agreement_1}',
+                               reply_markup=GeneralKeyboards.group_agreement)
+        await bot.send_message(message.from_user.id, f'{text_1.t_agreement_4}',
+                               reply_markup=keyboards.inlineKeyboards.UserAgreement)
     else:
         # Foolproof
         await bot.send_message(message.from_user.id, text_1.t_foolproof_buttons, reply_markup=GeneralKeyboards.group_startMenu)
+
+async def user_agreement(message: types.Message):
+    global dataAboutUser
+    if message.text == "Согласиться":
+        try:
+            dateRequest: dict
+            dateRequest = requests.post(
+                f"{BASE_URL}/consent/save_response", json={"user_tg_id": dataAboutUser[message.from_user.id]["user_tg_id"],
+                                                           "response": 1}).json()
+        except Exception as e:
+            log_error(e)
+            await bot.send_sticker(message.from_user.id, sticker=open("data/png/file_131068229.png", 'rb'))
+            await bot.send_message(message.from_user.id, text_1.t_mistake)
+        if dateRequest["action"] == "success":
+            await UserState.get_dateAboutUser_name.set()
+            ts(1)
+            await bot.send_message(message.from_user.id, text_1.t_reg_name_1)
+            ts(1)
+            await bot.send_message(message.from_user.id, text_1.t_reg_name_2)
+    else:
+        await bot.send_message(message.from_user.id, text_1.t_foolproof_buttons)
+        await UserState.start_register.set()
+
+
+
 
 
 # _ _ _ Start_register _ _ _
@@ -132,7 +159,7 @@ async def first_register_name(message: types.Message, state: FSMContext):
     """
     first_register_name function
 
-    Get user name
+    Get username
 
     Parameters:
     - message: The message containing the user's input
@@ -1463,6 +1490,7 @@ def startReg(dp=dp):
     dp.register_message_handler(startCommand, commands=["menu"], state="*")
     dp.register_message_handler(startCommand, commands=["start"])
     dp.register_message_handler(startCommand, commands=["menu"])
+    dp.register_message_handler(user_agreement, state=AgreementUser.get_user_info)
     dp.register_message_handler(mainMenu)
     dp.register_callback_query_handler(
         trip_cancellation_button, text="cancel a trip", state="*")
@@ -1476,7 +1504,7 @@ def startReg(dp=dp):
     dp.register_message_handler(
         first_register_surname, state=UserState.get_dateAboutUser_surname)
     dp.register_message_handler(
-        first_register_number, state=UserState.get_dateAboutUser_number, content_types=types.ContentType.CONTACT)
+            first_register_number, state=UserState.get_dateAboutUser_number, content_types=types.ContentType.CONTACT)
     dp.register_message_handler(
         first_register_number, state=UserState.get_dateAboutUser_number)
 

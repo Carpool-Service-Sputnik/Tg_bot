@@ -4,6 +4,10 @@ from datetime import datetime
 import calendar
 from pytz import timezone
 
+UserAgreement = InlineKeyboardMarkup(row_width= 1)
+url_agreement = InlineKeyboardButton('Пользовательское соглашение', url='https://www.youtube.com/watch?v=dQw4w9WgXcQ')
+UserAgreement.add(url_agreement)
+
 
 def GenerationOfInlineButtons(data, title, rows=3, columns=6, page_number=0):
     """
