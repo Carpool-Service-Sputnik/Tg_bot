@@ -126,6 +126,8 @@ async def startRegister(message: types.Message):
         # Foolproof
         await bot.send_message(message.from_user.id, text_1.t_foolproof_buttons, reply_markup=GeneralKeyboards.group_startMenu)
 
+
+# User agreement
 async def user_agreement(message: types.Message):
     global dataAboutUser
     if message.text == "Согласиться":
