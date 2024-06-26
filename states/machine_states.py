@@ -72,11 +72,6 @@ class MenuAbout(StatesGroup):
     set_about = State()
     set_instruction = State()
 
-class BecomeDriver(StatesGroup):
-    """Process Becoming Driver"""
-    start_become_dr = State()
-    set_car_num = State()
-    set_car_color = State()
 
 class ProfileMenu(StatesGroup):
     """Menu about profile"""
@@ -89,3 +84,11 @@ class CheckTripsMenu(StatesGroup):
     start_state = State()
     set_current_trips = State()
     set_past_trips = State()
+
+
+class CreateTripPassenger(StatesGroup):
+    set_direction = State()
+    set_route = State()
+    set_pointA = State()
+    set_pointB = State()
+    set_confirmation = State()

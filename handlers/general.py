@@ -3,7 +3,6 @@ from datetime import time
 from datetime import timedelta
 from aiogram import types
 from aiogram.dispatcher import FSMContext
-import keyboards.inlineKeyboards
 from loader import ts
 from loader import bot
 from loader import dp
@@ -13,6 +12,7 @@ from states import *
 from keyboards import *
 import requests
 from func import *
+from data import DirectionRoutesPoints
 import re
 
 
@@ -145,6 +145,8 @@ async def startRegister(message: types.Message):
 
 
 # _ _ _ Start_register _ _ _
+
+
 async def first_register_name(message: types.Message, state: FSMContext):
     """
     first_register_name function
@@ -319,7 +321,7 @@ async def mainMenu(message: types.Message, state: FSMContext):
     elif message.text == "Мои поездки":
         await myTripsCommandRegisteredFunction(message, state)
     elif message.text == "Поддержка":
-        await bot.send_message(message.from_user.id, text_2.t_support,reply_markup=keyboards.inlineKeyboards.supportkb)
+        await bot.send_message(message.from_user.id, text_2.t_support)
     elif message.text == "О сервисе":
         await MenuUser.go_to_about.set()
         await bot.send_message(message.from_user.id, text_1.t_about, reply_markup=GeneralKeyboards.group_aboutServiceMenuRegistered)
@@ -388,18 +390,10 @@ async def myProfileCommandRegistered(message: types.Message, state: FSMContext):
 
     :Returns to the main menu, sending information about a section
     """
-    
-    
+
     await MenuUser.start_state.set()
     if message.text == "Вернуться в главное меню":
-        # Foolproof
         await bot.send_message(message.from_user.id, f'{text_1.t_welcome}', reply_markup=GeneralKeyboards.mainMenu)
-    elif message.text == "Стать водителем":
-        await bot.send_message(message.from_user.id, f'{text_1.t_become_1}',
-                               reply_markup=GeneralKeyboards.single_btn_become_end)
-        await bot.send_message(message.from_user.id, f'{text_1.t_become_2}',
-                               reply_markup=keyboards.inlineKeyboards.becomekb)
-        await BecomeDriver.start_become_dr.set()
     elif message.text == 'Текущий баланс':
 
         try:
@@ -417,6 +411,7 @@ async def myProfileCommandRegistered(message: types.Message, state: FSMContext):
         await bot.send_message(message.from_user.id, 'Выбери сумму пополнения', reply_to_message_id=message.message_id,
                                reply_markup=SimpleKeyboardsForReplenishBalance.top_up_menu)
     else:
+        # Foolproof
         await bot.send_message(message.from_user.id, text_1.t_foolproof_buttons, reply_markup=GeneralKeyboards.mainMenu)
 
 
@@ -582,72 +577,6 @@ async def check_my_trips(message: types.Message, state: FSMContext):
         await bot.send_message(message.from_user.id, text_1.t_foolproof_buttons, reply_markup=GeneralKeyboards.mainMenu)
 
 
-async def check_my_trips(message: types.Message, state: FSMContext):
-    """
-    Check My Trips Function
-
-    Function - Checks and displays the user's current or past trips based on the input message
-
-    :param message: a class representing a user's message in a telegram bot
-    :type message: types.Message
-    :param state: For the possibility of further upgrade of the bot
-    :type state: FSMContext
-    :send_message: Information about trips
-    :type: Text
-    """
-    current_datetime = datetime.now()
-    if message.text == "Текущие поездки":
-        userData = requests.post(f"{BASE_URL}/gettrips/trips", json={
-            "id": f'{dataAboutUser[message.from_user.id]["user_id"]}'}).json()
-        data_list = []
-        for data in userData['data']:
-            trip_status = data['status']
-            trip_date = datetime.strptime(format_date_time(data['tripsdates']), "%d.%m.%Y").date()
-            trip_time = (datetime.strptime(format_date_time(data['tripstimes']), "%H:%M")).time()
-            trip_datetime = datetime.combine(trip_date, trip_time) + timedelta(minutes=10) # Дополнительные минуты
-
-            if (trip_status in ['agreed', 'waiting']) and (current_datetime <= trip_datetime):
-                data_list.append(data)
-        await MenuUser.start_state.set()
-        if len(data_list) > 0:
-            await bot.send_message(message.from_user.id, generate_new_str(data_list),
-                                   reply_markup=GeneralKeyboards.mainMenu)
-        else:
-            await bot.send_message(message.from_user.id, "У вас нет актуальных поездок",
-                                   reply_markup=GeneralKeyboards.mainMenu)
-
-    elif message.text == "Прошлые поездки":
-        userData = requests.post(f"{BASE_URL}/gettrips/trips", json={
-            "id": f'{dataAboutUser[message.from_user.id]["user_id"]}'}).json()
-        data_list = []
-        for data in userData['data']:
-            trip_status = data['status']
-            trip_date = datetime.strptime(format_date_time(data['tripsdates']), "%d.%m.%Y").date()
-            trip_time = (datetime.strptime(format_date_time(data['tripstimes']), "%H:%M")).time()
-            trip_datetime = datetime.combine(trip_date, trip_time) + timedelta(minutes=10) # Дополнительные минуты
-
-            if not (trip_status == 'agreed' or trip_status == 'waiting'):
-                data_list.append(data)
-            elif current_datetime >= trip_datetime:
-                data_list.append(data)
-
-        await MenuUser.start_state.set()
-        if len(data_list) > 0:
-            await bot.send_message(message.from_user.id, generate_new_str(data_list),
-                                   reply_markup=GeneralKeyboards.mainMenu)
-        else:
-            await bot.send_message(message.from_user.id, "Вы еще не совершали поездок",
-                                   reply_markup=GeneralKeyboards.mainMenu)
-
-    elif message.text == "Вернуться в главное меню":
-        await MenuUser.start_state.set()
-        await bot.send_message(message.from_user.id, f'{text_1.t_welcome}', reply_markup=GeneralKeyboards.mainMenu)
-
-    else:
-        await MenuUser.start_state.set()
-        await bot.send_message(message.from_user.id, text_1.t_foolproof_buttons, reply_markup=GeneralKeyboards.mainMenu)
-
-
 # _ _ _ TRIPS _ _ _
 
 
@@ -725,9 +654,113 @@ async def createTripForUser_typeOfMembers(message: types.Message):
         dataAboutTrip[message.from_user.id]["tripNumberOfPassengers"] = 0
         dataAboutTrip[message.from_user.id]["page_number"] = [
             data[0], data[1], data[3], data[4]]
+    elif message.text == "Пассажир_тест":
+        await CreateTripPassenger.set_direction.set()
+        await message.reply("Выберите направление:", reply_markup=direction_keyboard())
     else:
         # Foolproof
         await bot.send_message(message.from_user.id, text_1.t_foolproof_buttons, reply_markup=GeneralKeyboards.group_status)
+
+
+
+# _ _ _ Creating a trip new version _ _ _
+
+async def choose_direction(callback_query: types.CallbackQuery, state: FSMContext):
+    global dataAboutTrip
+    callback_data = callback_query.data
+    directions = {
+        "voenC": "Военвед - Центр",
+        "suvC": "Суворовский - Центр",
+        "sevC": "Северный - Центр",
+        "selC": "Сельмаш - Центр",
+        "zapC": "Западный - Центр",
+        "cVoen": "Центр - Военвед",
+        "cSuv": "Центр - Суворовский",
+        "cSev": "Центр - Северный",
+        "cSel": "Центр - Сельмаш",
+        "cZap": "Центр - Западный"
+    }
+    direction_name = directions.get(callback_data, "")
+
+    dataAboutTrip[callback_query.from_user.id]["directionName"] = direction_name
+    route_numbers = DirectionRoutesPoints.get_number_of_routes_by_direction(direction_name)
+    routes_text = ""
+    for i in range(1, route_numbers + 1):
+        routes_text += f'{i} - {DirectionRoutesPoints.get_route_by_direction(dataAboutTrip[callback_query.from_user.id]["directionName"], i)["link"]}\n\n'
+    await bot.send_message(callback_query.from_user.id, f"У нас есть такие маршруты:\n\n{routes_text}", reply_markup=route_keyboard(callback_data))
+    print(f"route_numbers    -  {route_numbers}\ndirection_name   -  {direction_name}")
+    await CreateTripPassenger.next()
+
+
+async def choose_route(callback_query: types.CallbackQuery, state: FSMContext):
+    global dataAboutTrip
+    callback_data = callback_query.data
+    print("callback_data in choose_route", callback_data)
+    async with state.proxy() as data:
+        data['marshrut'] = callback_data
+        dataAboutTrip[callback_query.from_user.id]["routeNumber"] = extract_number(callback_data)
+    await CreateTripPassenger.next()
+    await bot.edit_message_text(chat_id=callback_query.message.chat.id, message_id=callback_query.message.message_id, text='Откуда:',
+                                reply_markup=point_A_keyboard(route=callback_data))
+
+
+async def createTrip_pointA(callback_query: types.CallbackQuery, state: FSMContext):
+    """
+    Create trip for user & trip point A
+
+    This function handles the entry of trip point A by the user.
+    It updates the tripPointA in the dataAboutTrip dictionary, sets the user state to set_pointB,
+    and edit keyboard to select the trip point B.
+
+    :param callback_query: The call containing the user's input
+    :type callback_query: types.CallbackQuery
+    :param state: The FSMContext that contains the state of the FSM
+    :type state: FSMContext
+    """
+    global dataAboutTrip
+    call_data = callback_query.data
+    async with state.proxy() as data:
+        data['tochka1'] = call_data
+        dataAboutTrip[callback_query.from_user.id]["pointA"] = int(callback_query.data)
+        await bot.edit_message_text(chat_id=callback_query.message.chat.id, message_id=callback_query.message.message_id, text='Куда:',
+                                    reply_markup=point_B_keyboard(route=data['marshrut'], pointA=int(call_data) + 1))
+    await CreateTripPassenger.next()
+
+
+async def createTrip_pointB(callback_query: types.CallbackQuery, state: FSMContext):
+    """
+    Create trip for user & trip point B
+
+    This function handles the entry of trip point B by the user.
+    It updates the tripPointB in the dataAboutTrip dictionary, sets the user state to MenuUser.start_state,
+    and edit keyboard to confirm or decline trip.
+
+    :param callback_query: The call containing the user's input
+    :type callback_query: types.CallbackQuery
+    :param state: The FSMContext that contains the state of the FSM
+    :type state: FSMContext
+    """
+    global dataAboutTrip
+    call_data = callback_query.data
+    async with state.proxy() as data:
+        data['tochka2'] = call_data
+        dataAboutTrip[callback_query.from_user.id]["pointB"] = int(callback_query.data)
+        typeOfMembers = "Пассажир" if dataAboutTrip[callback_query.from_user.id][
+                        "typeOfMembers"] == "passenger" else "Водитель"
+        await bot.edit_message_text(chat_id=callback_query.message.chat.id, message_id=callback_query.message.message_id,
+                                    text=f"""Тип участника: {typeOfMembers}
+Направление: {dataAboutTrip[callback_query.from_user.id]['directionName']}
+Маршрут: {dataAboutTrip[callback_query.from_user.id]['routeNumber']}
+Откуда: {DirectionRoutesPoints.get_point_by_direction_and_route(dataAboutTrip[callback_query.from_user.id]['directionName'], 
+                                                                dataAboutTrip[callback_query.from_user.id]["routeNumber"], 
+                                                                dataAboutTrip[callback_query.from_user.id]["pointA"])}
+Куда: {DirectionRoutesPoints.get_point_by_direction_and_route(dataAboutTrip[callback_query.from_user.id]['directionName'], 
+                                                                dataAboutTrip[callback_query.from_user.id]["routeNumber"], 
+                                                                dataAboutTrip[callback_query.from_user.id]["pointB"])}
+Дата и время поездки: {format_date_time(dataAboutTrip[callback_query.from_user.id]["tripDates"])}  {format_date_time(dataAboutTrip[callback_query.from_user.id]["tripTimes"])}""", reply_markup=None)
+    await CreateTripPassenger.set_confirmation.set()
+    # await bot.send_message(callback_query.from_user.id, text_1.t_welcome, reply_markup=GeneralKeyboards.mainMenu)
+    await bot.send_message(callback_query.from_user.id, "Все верно?", reply_markup=GeneralKeyboards.group_yesNo)
 
 
 # _ _ _ Creating a trip _ _ _
@@ -815,7 +848,7 @@ async def createTripForUser_tripNumberOfPassengers(message: types.Message):
 
     try:
         if int(message.text) >= 0 and int(message.text) <= 4:  # Maximum number of passengers
-            dataAboutTrip[message.from_user.id]["tripNumberOfPassengers"] = message.text
+            dataAboutTrip[message.from_user.id]["tripNumberOfPassengers"] = int(message.text)
             if dataAboutCar[message.from_user.id]["check_"] == 1:
                 data = inlineKeyboards.GenerationOfInlineButtons_calendar()
                 await CreateTrip.get_dateAboutUser_carData.set()
@@ -1150,63 +1183,9 @@ async def createTripForUser_tripTimes(callback_query: types.CallbackQuery):
     else:
         dataAboutTrip[callback_query.from_user.id]["tripTimes"] = remove_non_digits(
             callback_query.data)
-        await CreateTrip.get_dateAbout_tripTimes.set()
-        await bot.send_message(callback_query.from_user.id, text_3.t_get_dateAbout_tripPointA, reply_markup=GeneralKeyboards.group_districts)
 
-
-async def createTripForUser_tripPointA(message: types.Message):
-    """
-    Create trip for user & trip point A
-
-    This function handles the entry of trip point A by the user.
-    It updates the tripPointA in the dataAboutTrip dictionary, sets the user state to get_dateAbout_tripPointB,
-    and sends a message to select the trip point B (campus).
-
-    :param message: The message containing the user's input
-    :type message: types.Message
-    """
-    global dataAboutTrip
-
-    if message.text in ["Центр", "Левенцовка", "Суворовский"]:
-        await CreateTrip.get_dateAbout_tripPointA.set()
-        dataAboutTrip[message.from_user.id]["tripPointA"] = message.text
-        await bot.send_message(message.from_user.id, text_3.t_get_dateAbout_tripPointB, reply_markup=GeneralKeyboards.group_districts)
-    else:
-        await bot.send_message(message.from_user.id, text_1.t_foolproof_buttons, reply_markup=GeneralKeyboards.group_districts)
-
-
-async def createTripForUser_tripPointB(message: types.Message):
-    """
-    Create trip for user & trip point B
-
-    This function handles the entry of the trip ending point by the user.
-    It updates the tripPointB in the dataAboutTrip dictionary.
-    If the tripPointB is the same as the tripPointA, it sends an error message.
-    Otherwise, it sets the user state to get_dateAbout_tripPointB and sends a message to review the trip information.
-
-    :param message: The message containing the user's input
-    :type message: types.Message
-    """
-    global dataAboutTrip
-
-    # Update the tripPointB in the dataAboutTrip dictionary with the user input
-    dataAboutTrip[message.from_user.id]["tripPointB"] = message.text
-
-    # Check if the tripPointB is the same as the tripPointA
-    if dataAboutTrip[message.from_user.id]["tripPointB"] == dataAboutTrip[message.from_user.id]["tripPointA"]:
-        # If the tripPointB is the same as the tripPointA, send an error message with a single button keyboard
-        await bot.send_message(message.from_user.id, text_3.t_thePointsAreEqual, reply_markup=GeneralKeyboards.single_btn_command_menu)
-    elif message.text in ["Центр", "Левенцовка", "Суворовский"]:
-        # If the tripPointB is different from the tripPointA, set the user state to get_dateAbout_tripPointB
-        await CreateTrip.get_dateAbout_tripPointB.set()
-        await bot.send_message(message.from_user.id, text_3.t_check, reply_markup=GeneralKeyboards.group_yesNo)
-        typeOfMembers = "Пассажир" if dataAboutTrip[message.from_user.id][
-            "typeOfMembers"] == "passenger" else "Водитель"
-        await bot.send_message(message.from_user.id, f'''Тип участника: {typeOfMembers}\nДата поездки: {format_date_time(dataAboutTrip[message.from_user.id]["tripDates"])}\nВремя поездки:
-                               {format_date_time(dataAboutTrip[message.from_user.id]["tripTimes"])}\nОткуда: {dataAboutTrip[message.from_user.id]["tripPointA"]}\nКуда:
-                               {dataAboutTrip[message.from_user.id]["tripPointB"]}''')
-    else:
-        await bot.send_message(message.from_user.id, text_1.t_foolproof_buttons, reply_markup=GeneralKeyboards.group_districts)
+        await CreateTripPassenger.set_direction.set()
+        await bot.send_message(callback_query.from_user.id, text_3.t_get_dateAbout_tripRoute, reply_markup=direction_keyboard())
 
 
 async def createTripForUser_check(message: types.Message):
@@ -1225,10 +1204,17 @@ async def createTripForUser_check(message: types.Message):
         try:
             userData = requests.post(f"{BASE_URL}/сreatingtrips",
                                      json={
-                "id": f'{dataAboutUser[message.from_user.id]["user_id"]}', "typeofmembers": f'{dataAboutTrip[message.from_user.id]["typeOfMembers"]}',
-                "tripsdates": f'{dataAboutTrip[message.from_user.id]["tripDates"]}', "tripstimes": f'{dataAboutTrip[message.from_user.id]["tripTimes"]}',
-                "pointa": f'{dataAboutTrip[message.from_user.id]["tripPointA"]}', "pointb": f'{dataAboutTrip[message.from_user.id]["tripPointB"]}',
-                "number_of_passengers": f'{dataAboutTrip[message.from_user.id]["tripNumberOfPassengers"]}', "status": "waiting"
+                "user_id": f'{dataAboutUser[message.from_user.id]["user_id"]}',
+                "typeofmembers": f'{dataAboutTrip[message.from_user.id]["typeOfMembers"]}',
+                "tripsdates": f'{dataAboutTrip[message.from_user.id]["tripDates"]}',
+                "tripstimes": f'{dataAboutTrip[message.from_user.id]["tripTimes"]}',
+                "direction_name": f'{dataAboutTrip[message.from_user.id]["directionName"]}',
+                "route_number": dataAboutTrip[message.from_user.id]["routeNumber"],
+                "pointa": dataAboutTrip[message.from_user.id]["pointA"],
+                "pointb": dataAboutTrip[message.from_user.id]["pointB"],
+                "number_of_passengers": 0,
+                "status": "waiting",
+                "maximum_number_of_passengers": dataAboutTrip[message.from_user.id]["tripNumberOfPassengers"]
             }).json()
             # Processing data from the database "AgreedTrips"
             userDataAgreedTrips = requests.post(
@@ -1263,7 +1249,7 @@ async def createTripForUser_check(message: types.Message):
                 userDataPassengers = remove_dicts_with_id(
                     userData1, "driver", "typeofmembers")
                 userDataPassengers_filter_trip_list = filter_trip_list(
-                    userDataPassengers, dataAboutTrip[message.from_user.id]["tripPointA"], dataAboutTrip[message.from_user.id]["tripPointB"])
+                    userDataPassengers, dataAboutTrip[message.from_user.id]["pointA"], dataAboutTrip[message.from_user.id]["pointB"])
                 userData2 = create_new_dict(
                     userDataPassengers_filter_trip_list)
                 userData2[dataAboutTrip[message.from_user.id]["id_agreedTrips"]] = [
@@ -1333,7 +1319,7 @@ async def createTripForUser_check(message: types.Message):
             elif dataAboutTrip[message.from_user.id]["typeOfMembers"] == "passenger":
                 # Processing data from the database
                 userDataAgreedTrips["data"] = filter_trip_list(
-                    userDataAgreedTrips["data"], dataAboutTrip[message.from_user.id]["tripPointA"], dataAboutTrip[message.from_user.id]["tripPointB"])
+                    userDataAgreedTrips["data"], dataAboutTrip[message.from_user.id]["pointA"], dataAboutTrip[message.from_user.id]["pointB"])
                 userData2 = create_new_dict(userDataAgreedTrips["data"])
                 userData2[dataAboutTrip[message.from_user.id]["id_trip"]] = [
                     dataAboutTrip[message.from_user.id]["tripDates"], dataAboutTrip[message.from_user.id]["tripTimes"]]
@@ -1581,6 +1567,7 @@ async def top_up_handle_callback(callback_query: types.CallbackQuery, state: FSM
         await MenuUser.start_state.set()
 
 
+
 # _ _ _ Packing the registration of handlers into functions by groups _ _ _
 
 
@@ -1624,13 +1611,8 @@ def trips(dp=dp):
         createTripForUser_tripDates_minutes, state=CreateTrip.get_dateAbout_tripDates)
     dp.register_callback_query_handler(
         createTripForUser_tripTimes, state=CreateTrip.get_dateAbout_tripTimes_minutes)
-
     dp.register_message_handler(
-        createTripForUser_tripPointA, state=CreateTrip.get_dateAbout_tripTimes)
-    dp.register_message_handler(
-        createTripForUser_tripPointB, state=CreateTrip.get_dateAbout_tripPointA)
-    dp.register_message_handler(
-        createTripForUser_check, state=CreateTrip.get_dateAbout_tripPointB)
+        createTripForUser_check, state=CreateTripPassenger.set_confirmation)
 
 
 def car(dp=dp):
@@ -1662,7 +1644,6 @@ def car(dp=dp):
 
 def menuAll(dp=dp):
     dp.register_message_handler(aboutCommand, state=MenuAbout.start_state)
-    dp.register_message_handler(become_driver_end, state=BecomeDriver.start_become_dr)# become driver
     dp.register_message_handler(mainMenu, state=MenuUser.start_state)
     dp.register_message_handler(
         aboutCommandRegistered, state=MenuUser.go_to_about)
@@ -1672,6 +1653,11 @@ def menuAll(dp=dp):
         myTripsCommandRegistered, state=MenuUser.set_myTrips)
     dp.register_callback_query_handler(top_up_handle_callback, state=ProfileMenu.set_top_up_balance)
     dp.register_message_handler(check_my_trips, state=CheckTripsMenu.start_state)
+
+    dp.register_callback_query_handler(choose_direction, state=CreateTripPassenger.set_direction)
+    dp.register_callback_query_handler(choose_route, state=CreateTripPassenger.set_route)
+    dp.register_callback_query_handler(createTrip_pointA, state=CreateTripPassenger.set_pointA)
+    dp.register_callback_query_handler(createTrip_pointB, state=CreateTripPassenger.set_pointB)
 
 
 def adminCommands(dp=dp):
