@@ -68,7 +68,7 @@ async def startCommand(message: types.Message):
     dataAboutCar[message.from_user.id] = {"user_tg_id": message.from_user.id}
 
     # Register user in the service
-    Accounting(dataAboutUser[message.from_user.id]["user_tg_id"]) #DDD
+    Accounting(dataAboutUser[message.from_user.id]["user_tg_id"]) 
 
     # Check if the user is registered in the service
     try:
@@ -94,13 +94,12 @@ async def startCommand(message: types.Message):
 
     else:
         #check if user give consent repsonse
-        print("\n", message.from_user.id)
         try:
             
             dateRequestConcent: dict
             dateRequestConcent = requests.post(f"{BASE_URL}/checkuser/get_response",
                                                 json={"id_user": message.from_user.id}).json()
-            print("LOG 123")
+            
             #dataAboutUser[message.from_user.id]["user_tg_id"]
         except Exception as e:
             log_error(e)
