@@ -401,7 +401,7 @@ async def myProfileCommandRegistered(message: types.Message, state: FSMContext):
                                reply_markup=keyboards.inlineKeyboards.becomekb)
         await BecomeDriver.start_become_dr.set()
     elif message.text == 'Текущий баланс':
-
+        # trying to get user balance 
         try:
             balance: dict
             balance = requests.post( 
@@ -409,7 +409,7 @@ async def myProfileCommandRegistered(message: types.Message, state: FSMContext):
             
         except Exception as e:
             log_error(e)
-
+        # showing user balance if it's exist
         balance_text = f'Ваш баланс: {balance} ₽'
         await bot.send_message(message.from_user.id, balance_text, reply_markup=GeneralKeyboards.mainMenu)
     elif message.text == 'Пополнить баланс':
