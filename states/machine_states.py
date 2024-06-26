@@ -84,3 +84,11 @@ class CheckTripsMenu(StatesGroup):
     start_state = State()
     set_current_trips = State()
     set_past_trips = State()
+
+
+class CreateTripPassenger(StatesGroup):
+    set_direction = State()
+    set_route = State()
+    set_pointA = State()
+    set_pointB = State()
+    set_confirmation = State()

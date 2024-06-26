@@ -3,6 +3,8 @@ import math
 from datetime import datetime
 import calendar
 from pytz import timezone
+from data.DirectionRoutesPoints import *
+from func import *
 
 
 def GenerationOfInlineButtons(data, title, rows=3, columns=6, page_number=0):
@@ -258,8 +260,7 @@ def _extracted_from_GenerationOfInlineButtons_time_(arg0, keyboards, empty_butto
 
 
 class SimpleKeyboardsForReplenishBalance:
-    confirm_button = InlineKeyboardButton(text='Подтвердить', callback_data='confirmation_of_replenishment_of_the_balance',
-                                          )
+    confirm_button = InlineKeyboardButton(text='Подтвердить', callback_data='confirmation_of_replenishment_of_the_balance')
     cancel_button = InlineKeyboardButton(text='Отменить', callback_data='canceling_of_replenishment_of_the_balance')
     confirm_cancel_inline_kb = InlineKeyboardMarkup()
     confirm_cancel_inline_kb.insert(confirm_button).insert(cancel_button)
@@ -273,10 +274,141 @@ class SimpleKeyboardsForReplenishBalance:
         top_up_menu.insert(button)
 
 
+# - - - - - - - - - - - - -- - - - - - - --
+def direction_keyboard():
+    inline_kb = InlineKeyboardMarkup(row_width=2)
+    direction1 = InlineKeyboardButton("Военвед - Центр", callback_data="voenC")
+    direction2 = InlineKeyboardButton("Суворовский - Центр", callback_data="suvC")
+    direction3 = InlineKeyboardButton("Северный - Центр", callback_data="sevC")
+    direction4 = InlineKeyboardButton("Сельмаш - Центр", callback_data="selC")
+    direction5 = InlineKeyboardButton("Западный - Центр", callback_data="zapC")
+    direction6 = InlineKeyboardButton("Центр - Военвед", callback_data="cVoen")
+    direction7 = InlineKeyboardButton("Центр - Суворовский", callback_data="cSuv")
+    direction8 = InlineKeyboardButton("Центр - Северный", callback_data="cSev")
+    direction9 = InlineKeyboardButton("Центр - Сельмаш", callback_data="cSel")
+    direction10 = InlineKeyboardButton("Центр - Западный", callback_data="cZap")
+
+    inline_kb.add(direction1, direction6, direction2, direction7, direction3, direction8, direction4,
+                  direction9, direction5, direction10)
+
+    return inline_kb
 
 
+def route_keyboard(direction):
+    inline_kb = InlineKeyboardMarkup(row_width=2)
+
+    if (direction == "voenC"):
+        route1 = InlineKeyboardButton('1', callback_data='voenCMarshrut1')
+        route2 = InlineKeyboardButton('2', callback_data='voenCMarshrut2')
+        inline_kb.add(route1, route2)
+    if (direction == "suvC"):
+        route1 = InlineKeyboardButton('1', callback_data='suvCMarshrut1')
+        route2 = InlineKeyboardButton('2', callback_data='suvCMarshrut2')
+        inline_kb.add(route1, route2)
+    if (direction == "sevC"):
+        route1 = InlineKeyboardButton('1', callback_data='sevCMarshrut1')
+        route2 = InlineKeyboardButton('2', callback_data='sevCMarshrut2')
+        inline_kb.add(route1, route2)
+    if (direction == "selC"):
+        route1 = InlineKeyboardButton('1', callback_data='selCMarshrut1')
+        route2 = InlineKeyboardButton('2', callback_data='selCMarshrut2')
+        route3 = InlineKeyboardButton('3', callback_data='selCMarshrut3')
+        inline_kb.add(route1, route2, route3)
+    if (direction == "zapC"):
+        route1 = InlineKeyboardButton('1', callback_data='zapCMarshrut1')
+        route2 = InlineKeyboardButton('2', callback_data='zapCMarshrut2')
+        inline_kb.add(route1, route2)
+    if (direction == "cVoen"):
+        route1 = InlineKeyboardButton('1', callback_data='cVoenMarshrut1')
+        route2 = InlineKeyboardButton('2', callback_data='cVoenMarshrut2')
+        inline_kb.add(route1, route2)
+    if (direction == "cSuv"):
+        route1 = InlineKeyboardButton('1', callback_data='cSuvMarshrut1')
+        route2 = InlineKeyboardButton('2', callback_data='cSuvMarshrut2')
+        inline_kb.add(route1, route2)
+    if (direction == "cSev"):
+        route1 = InlineKeyboardButton('1', callback_data='cSevMarshrut1')
+        route2 = InlineKeyboardButton('2', callback_data='cSevMarshrut2')
+        inline_kb.add(route1, route2)
+    if (direction == "cSel"):
+        route1 = InlineKeyboardButton('1', callback_data='cSelMarshrut1')
+        route2 = InlineKeyboardButton('2', callback_data='cSelMarshrut2')
+        route3 = InlineKeyboardButton('3', callback_data='cSelMarshrut3')
+        inline_kb.add(route1, route2, route3)
+    if (direction == "cZap"):
+        route1 = InlineKeyboardButton('1', callback_data='cZapMarshrut1')
+        route2 = InlineKeyboardButton('2', callback_data='cZapMarshrut2')
+        inline_kb.add(route1, route2)
+    return inline_kb
 
 
+def create_keyboard_for_choose_points(direction, route):
+    route_number = extract_number(route)
+    number_of_points = DirectionRoutesPoints.get_number_of_points_by_direction_and_route(direction, route_number)
+    keyboard_list = []
+    for i in range(number_of_points):
+        point_text = DirectionRoutesPoints.get_point_by_direction_and_route(direction, route_number, i)
+        button = InlineKeyboardButton(point_text, callback_data=i)
+        keyboard_list.append(button)
+    return keyboard_list
+
+def all_dots_kb(route):
+    direction_mapping = {
+        'voenCMarshrut1': 'Военвед - Центр',
+        'voenCMarshrut2': 'Военвед - Центр',
+        'suvCMarshrut1': 'Суворовский - Центр',
+        'suvCMarshrut2': 'Суворовский - Центр',
+        'sevCMarshrut1': 'Северный - Центр',
+        'sevCMarshrut2': 'Северный - Центр',
+        'selCMarshrut1': 'Сельмаш - Центр',
+        'selCMarshrut2': 'Сельмаш - Центр',
+        'selCMarshrut3': 'Сельмаш - Центр',
+        'zapCMarshrut1': 'Западный - Центр',
+        'zapCMarshrut2': 'Западный - Центр',
+        'cVoenMarshrut1': 'Центр - Военвед',
+        'cVoenMarshrut2': 'Центр - Военвед',
+        'cSuvMarshrut1': 'Центр - Суворовский',
+        'cSuvMarshrut2': 'Центр - Суворовский',
+        'cSevMarshrut1': 'Центр - Северный',
+        'cSevMarshrut2': 'Центр - Северный',
+        'cSelMarshrut1': 'Центр - Сельмаш',
+        'cSelMarshrut2': 'Центр - Сельмаш',
+        'cSelMarshrut3': 'Центр - Сельмаш',
+        'cZapMarshrut1': 'Центр - Западный',
+        'cZapMarshrut2': 'Центр - Западный'
+    }
+
+    direction = direction_mapping.get(route)
+    if not direction:
+        return None
+
+    inline_kb = InlineKeyboardMarkup(row_width=1)
+    for button in create_keyboard_for_choose_points(direction, route):
+        inline_kb.add(button)
+
+    return inline_kb
 
 
+def point_A_keyboard(route):
+    inline_kb = all_dots_kb(route=route)
+    all_buttons = sum(inline_kb.inline_keyboard, [])[:-1]
 
+    # Создаем новую клавиатуру и добавляем оставшиеся кнопки
+    new_keyboard = InlineKeyboardMarkup(row_width=inline_kb.row_width)
+    new_keyboard.inline_keyboard = [all_buttons[i:i + new_keyboard.row_width] for i in
+                                    range(0, len(all_buttons), new_keyboard.row_width)]
+    return new_keyboard
+
+
+def point_B_keyboard(route, pointA):
+    inline_kb = all_dots_kb(route=route)
+    all_buttons = sum(inline_kb.inline_keyboard, [])
+
+    # Удаляем первые n кнопок
+    remaining_buttons = all_buttons[pointA:] if pointA <= len(all_buttons) else []
+
+    # Создаем новую клавиатуру и добавляем оставшиеся кнопки
+    new_keyboard = InlineKeyboardMarkup(row_width=inline_kb.row_width)
+    new_keyboard.inline_keyboard = [remaining_buttons[i:i + new_keyboard.row_width] for i in
+                                    range(0, len(remaining_buttons), new_keyboard.row_width)]
+    return new_keyboard
