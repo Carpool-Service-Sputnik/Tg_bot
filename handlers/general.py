@@ -1243,10 +1243,17 @@ async def createTripForUser_check(message: types.Message):
         try:
             userData = requests.post(f"{BASE_URL}/сreatingtrips",
                                      json={
-                "id": f'{dataAboutUser[message.from_user.id]["user_id"]}', "typeofmembers": f'{dataAboutTrip[message.from_user.id]["typeOfMembers"]}',
-                "tripsdates": f'{dataAboutTrip[message.from_user.id]["tripDates"]}', "tripstimes": f'{dataAboutTrip[message.from_user.id]["tripTimes"]}',
-                "pointa": f'{dataAboutTrip[message.from_user.id]["tripPointA"]}', "pointb": f'{dataAboutTrip[message.from_user.id]["tripPointB"]}',
-                "number_of_passengers": f'{dataAboutTrip[message.from_user.id]["tripNumberOfPassengers"]}', "status": "waiting"
+                "user_id": f'{dataAboutUser[message.from_user.id]["user_id"]}',
+                "typeofmembers": f'{dataAboutTrip[message.from_user.id]["typeOfMembers"]}',
+                "tripsdates": f'{dataAboutTrip[message.from_user.id]["tripDates"]}',
+                "tripstimes": f'{dataAboutTrip[message.from_user.id]["tripTimes"]}',
+                "direction_name": f'{dataAboutTrip[message.from_user.id]["directionName"]}',
+                "route_number": dataAboutTrip[message.from_user.id]["routeNumber"],
+                "pointa": dataAboutTrip[message.from_user.id]["pointA"],
+                "pointb": dataAboutTrip[message.from_user.id]["pointB"],
+                "number_of_passengers": 0,
+                "status": "waiting",
+                "maximum_number_of_passengers": dataAboutTrip[message.from_user.id]["tripNumberOfPassengers"]
             }).json()
             # Processing data from the database "AgreedTrips"
             userDataAgreedTrips = requests.post(
