@@ -620,9 +620,9 @@ async def createTripForUser_typeOfMembers(message: types.Message):
         dataAboutTrip[message.from_user.id]["tripNumberOfPassengers"] = 0
         dataAboutTrip[message.from_user.id]["page_number"] = [
             data[0], data[1], data[3], data[4]]
-    elif message.text == "Пассажир_тест":
-        await CreateTripPassenger.set_direction.set()
-        await message.reply("Выберите направление:", reply_markup=direction_keyboard())
+    elif message.text == "Вернуться в главное меню":
+        await MenuUser.start_state.set()
+        await bot.send_message(message.from_user.id, text_1.t_welcome, reply_markup=GeneralKeyboards.mainMenu)
     else:
         # Foolproof
         await bot.send_message(message.from_user.id, text_1.t_foolproof_buttons, reply_markup=GeneralKeyboards.group_status)
@@ -1213,15 +1213,32 @@ async def createTripForUser_check(message: types.Message):
             if dataAboutTrip[message.from_user.id]["typeOfMembers"] == "driver":
                 # Processing data from the database
                 userDataPassengers = remove_dicts_with_id(
-                    userData1, "driver", "typeofmembers")
-                userDataPassengers_filter_trip_list = filter_trip_list(
-                    userDataPassengers, dataAboutTrip[message.from_user.id]["pointA"], dataAboutTrip[message.from_user.id]["pointB"])
+                    userData1, "driver", "typeofmembers") # тут
+
+                print('ХУЙ', dataAboutTrip)
+                print('user_id', dataAboutUser[message.from_user.id]['user_id'])
+
+                userDataPassengers_filter_trip_list = filter_trip_list2(
+                    userDataPassengers,
+                    dataAboutTrip[message.from_user.id]["pointA"],
+                    dataAboutTrip[message.from_user.id]["pointB"],
+                    dataAboutTrip[message.from_user.id]["directionName"],
+                    dataAboutTrip[message.from_user.id]["routeNumber"],
+                    dataAboutUser[message.from_user.id]['user_id'])
+
+                print('ХУЙ')
+                print(userDataPassengers_filter_trip_list)
+
                 userData2 = create_new_dict(
                     userDataPassengers_filter_trip_list)
                 userData2[dataAboutTrip[message.from_user.id]["id_agreedTrips"]] = [
                     dataAboutTrip[message.from_user.id]["tripDates"], dataAboutTrip[message.from_user.id]["tripTimes"]]
-                suitableTripIDs = algorithmForCalculatingSuitableTripsTime(userData2, dataAboutTrip[message.from_user.id]["id_agreedTrips"], algorithmForCalculatingSuitableTripsDate(
+                suitableTripIDs = algorithmForCalculatingSuitableTripsTime(userData2, dataAboutTrip[message.from_user.id]["id_agreedTrips"],
+                                                                           algorithmForCalculatingSuitableTripsDate(
                     userData2, dataAboutTrip[message.from_user.id]["id_agreedTrips"]), 60)
+
+                print("userData2", userData2)
+                print("suitableTripIDs", suitableTripIDs)
 
                 if len(suitableTripIDs) == 0:
                     await bot.send_message(message.from_user.id, text_3.t_no_matches, reply_markup=GeneralKeyboards.single_btn_command_menu)

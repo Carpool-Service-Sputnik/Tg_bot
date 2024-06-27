@@ -3,6 +3,7 @@ import random
 from datetime import datetime
 import os
 import re
+from data import DirectionRoutesPoints
 
 
 
@@ -124,6 +125,22 @@ def filter_trip_list(trips_list, trip_point_a, trip_point_b):
     ]
     return filtered_trips
 
+def filter_trip_list2(trips_list, trip_point_a, trip_point_b, direction_name, route_number, exclude_user_id):
+    """Filters leaving only point A and point B, and optionally by direction and route number"""
+    filtered_trips = [
+        trip
+        for trip in trips_list
+        if trip.get("pointa") >= trip_point_a
+        and trip.get("pointb") <= trip_point_b
+        and trip.get("direction_name") == direction_name
+        and trip.get("route_number") == route_number
+        and trip.get("user_id") != exclude_user_id
+    ]
+    return filtered_trips
+
+def compare_points(data_list, pointA_driver, pointB_driver):
+    points_list = [[entry['pointa'], entry['pointb']] for entry in data_list]
+    print(points_list)
 
 
 
@@ -159,8 +176,10 @@ def generate_new_str(user_data):
 Тип пользователя: {data["typeofmembers"]}
 Дата поездки: {format_date_time(data["tripsdates"])}
 Время поездки: {format_date_time(data["tripstimes"])}
-От куда: {data["pointa"]}
-Куда: {data["pointb"]}
+Направление: {data["direction_name"]}
+Маршрут: {data["route_number"]}
+Откуда: {DirectionRoutesPoints.get_point_by_direction_and_route(data["direction_name"], data["route_number"], data["pointa"])}
+Куда: {DirectionRoutesPoints.get_point_by_direction_and_route(data["direction_name"], data["route_number"], data["pointb"])}
 Статус: {newStr}
 """
     return new_str

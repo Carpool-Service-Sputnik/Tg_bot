@@ -34,7 +34,6 @@ class GeneralKeyboards():
     btn_command_start = KeyboardButton("/start")
     btn_command_menu = KeyboardButton("/menu")
     btn_status_P = KeyboardButton("Пассажир")
-    btn_status_P_test = KeyboardButton("Пассажир_тест")
     btn_status_D = KeyboardButton("Водитель")
     btn_yes = KeyboardButton("Да")
     btn_no = KeyboardButton("Нет")
@@ -95,7 +94,7 @@ class GeneralKeyboards():
 
     # - - - Driver or passenger - - -
     group_status = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
-    group_status.add(btn_status_P, btn_status_D).row(btn_status_P_test)
+    group_status.add(btn_status_P, btn_status_D).row(btn_main)
 
     # - - - Yes or No - - -
     group_yesNo = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
