@@ -833,7 +833,7 @@ async def createTripForUser_tripNumberOfPassengers(message: types.Message):
 
     try:
         if int(message.text) >= 0 and int(message.text) <= 4:  # Maximum number of passengers
-            dataAboutTrip[message.from_user.id]["tripNumberOfPassengers"] = message.text
+            dataAboutTrip[message.from_user.id]["tripNumberOfPassengers"] = int(message.text)
             if dataAboutCar[message.from_user.id]["check_"] == 1:
                 data = inlineKeyboards.GenerationOfInlineButtons_calendar()
                 await CreateTrip.get_dateAboutUser_carData.set()
