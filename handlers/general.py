@@ -727,7 +727,7 @@ async def createTrip_pointA(callback_query: types.CallbackQuery, state: FSMConte
     await CreateTripPassenger.next()
 
 
-async def createTrip_pointB(callback_query: types.CallbackQuery, state: FSMContext): #DDD
+async def createTrip_pointB(callback_query: types.CallbackQuery, state: FSMContext):
     """
     Create trip for user & trip point B
 
