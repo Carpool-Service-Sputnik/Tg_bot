@@ -740,24 +740,31 @@ async def createTrip_pointB(callback_query: types.CallbackQuery, state: FSMConte
     :param state: The FSMContext that contains the state of the FSM
     :type state: FSMContext
     """
-    global dataAboutTrip
+    global dataAboutTrip 
     call_data = callback_query.data
     async with state.proxy() as data:
         data['tochka2'] = call_data
         dataAboutTrip[callback_query.from_user.id]["pointB"] = int(callback_query.data)
         typeOfMembers = "Пассажир" if dataAboutTrip[callback_query.from_user.id][
                         "typeOfMembers"] == "passenger" else "Водитель"
-        await bot.edit_message_text(chat_id=callback_query.message.chat.id, message_id=callback_query.message.message_id,
-                                    text=f"""Тип участника: {typeOfMembers}
-Направление: {dataAboutTrip[callback_query.from_user.id]['directionName']}
-Маршрут: {dataAboutTrip[callback_query.from_user.id]['routeNumber']}
-Откуда: {DirectionRoutesPoints.get_point_by_direction_and_route(dataAboutTrip[callback_query.from_user.id]['directionName'], 
-                                                                dataAboutTrip[callback_query.from_user.id]["routeNumber"], 
-                                                                dataAboutTrip[callback_query.from_user.id]["pointA"])}
-Куда: {DirectionRoutesPoints.get_point_by_direction_and_route(dataAboutTrip[callback_query.from_user.id]['directionName'], 
-                                                                dataAboutTrip[callback_query.from_user.id]["routeNumber"], 
-                                                                dataAboutTrip[callback_query.from_user.id]["pointB"])}
-Дата и время поездки: {format_date_time(dataAboutTrip[callback_query.from_user.id]["tripDates"])}  {format_date_time(dataAboutTrip[callback_query.from_user.id]["tripTimes"])}""", reply_markup=None)
+        text=f"""Тип участника: {typeOfMembers}
+            Направление: {dataAboutTrip[callback_query.from_user.id]['directionName']}
+            Маршрут: {dataAboutTrip[callback_query.from_user.id]['routeNumber']}
+            Откуда: {DirectionRoutesPoints.get_point_by_direction_and_route(dataAboutTrip[callback_query.from_user.id]['directionName'], 
+                                                                            dataAboutTrip[callback_query.from_user.id]["routeNumber"], 
+                                                                            dataAboutTrip[callback_query.from_user.id]["pointA"])}
+            Куда: {DirectionRoutesPoints.get_point_by_direction_and_route(dataAboutTrip[callback_query.from_user.id]['directionName'], 
+                                                                            dataAboutTrip[callback_query.from_user.id]["routeNumber"], 
+                                                                            dataAboutTrip[callback_query.from_user.id]["pointB"])}
+            Дата и время поездки: {format_date_time(dataAboutTrip[callback_query.from_user.id]["tripDates"])}  {format_date_time(dataAboutTrip[callback_query.from_user.id]["tripTimes"])}"""
+        
+        #If member type is passenger we show him cost of his trip
+        if typeOfMembers == 'Водитель':
+            await bot.edit_message_text(chat_id=callback_query.message.chat.id, message_id=callback_query.message.message_id, text = text, reply_markup=None)
+        else:
+            await bot.edit_message_text(chat_id=callback_query.message.chat.id, message_id=callback_query.message.message_id, text = text + f'''{calculate_trip_cost(
+                dataAboutTrip[callback_query.from_user.id]["pointA"], dataAboutTrip[callback_query.from_user.id]["pointB"])}''', reply_markup=None)
+            
     await CreateTripPassenger.set_confirmation.set()
     # await bot.send_message(callback_query.from_user.id, text_1.t_welcome, reply_markup=GeneralKeyboards.mainMenu)
     await bot.send_message(callback_query.from_user.id, "Все верно?", reply_markup=GeneralKeyboards.group_yesNo)
@@ -1511,7 +1518,7 @@ async def get_information_about_fellow_travelers(callback_query: types.CallbackQ
         await callback_query.answer("Возникла ошибка")
 
 
-async def top_up_handle_callback(callback_query: types.CallbackQuery, state: FSMContext): #DDD
+async def top_up_handle_callback(callback_query: types.CallbackQuery, state: FSMContext):
     """
     Handle the replenishment buttons callback query
 
