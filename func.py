@@ -229,6 +229,9 @@ def remove_non_digits(text):
     return newStr
 
 
+def extract_number(string):
+    match = re.search(r'\d+', string)
+    return int(match.group()) if match else None
 
 
 def foolproofCyrillic(text: str):
