@@ -652,6 +652,102 @@ async def createTripForUser_typeOfMembers(message: types.Message):
         await bot.send_message(message.from_user.id, text_1.t_foolproof_buttons, reply_markup=GeneralKeyboards.group_status)
 
 
+# _ _ _ Creating a trip new version _ _ _
+
+async def choose_direction(callback_query: types.CallbackQuery, state: FSMContext):
+    global dataAboutTrip
+    callback_data = callback_query.data
+    directions = {
+        "voenC": "Военвед - Центр",
+        "suvC": "Суворовский - Центр",
+        "sevC": "Северный - Центр",
+        "selC": "Сельмаш - Центр",
+        "zapC": "Западный - Центр",
+        "cVoen": "Центр - Военвед",
+        "cSuv": "Центр - Суворовский",
+        "cSev": "Центр - Северный",
+        "cSel": "Центр - Сельмаш",
+        "cZap": "Центр - Западный"
+    }
+    direction_name = directions.get(callback_data, "")
+
+    dataAboutTrip[callback_query.from_user.id]["directionName"] = direction_name
+    route_numbers = DirectionRoutesPoints.get_number_of_routes_by_direction(direction_name)
+    routes_text = ""
+    for i in range(1, route_numbers + 1):
+        routes_text += f'{i} - {DirectionRoutesPoints.get_route_by_direction(dataAboutTrip[callback_query.from_user.id]["directionName"], i)["link"]}\n\n'
+    await bot.send_message(callback_query.from_user.id, f"У нас есть такие маршруты:\n\n{routes_text}", reply_markup=route_keyboard(callback_data))
+    print(f"route_numbers    -  {route_numbers}\ndirection_name   -  {direction_name}")
+    await CreateTripPassenger.next()
+
+
+async def choose_route(callback_query: types.CallbackQuery, state: FSMContext):
+    global dataAboutTrip
+    callback_data = callback_query.data
+    print("callback_data in choose_route", callback_data)
+    async with state.proxy() as data:
+        data['marshrut'] = callback_data
+        dataAboutTrip[callback_query.from_user.id]["routeNumber"] = extract_number(callback_data)
+    await CreateTripPassenger.next()
+    await bot.edit_message_text(chat_id=callback_query.message.chat.id, message_id=callback_query.message.message_id, text='Откуда:',
+                                reply_markup=point_A_keyboard(route=callback_data))
+
+
+async def createTrip_pointA(callback_query: types.CallbackQuery, state: FSMContext):
+    """
+    Create trip for user & trip point A
+    This function handles the entry of trip point A by the user.
+    It updates the tripPointA in the dataAboutTrip dictionary, sets the user state to set_pointB,
+    and edit keyboard to select the trip point B.
+    :param callback_query: The call containing the user's input
+    :type callback_query: types.CallbackQuery
+    :param state: The FSMContext that contains the state of the FSM
+    :type state: FSMContext
+    """
+    global dataAboutTrip
+    call_data = callback_query.data
+    async with state.proxy() as data:
+        data['tochka1'] = call_data
+        dataAboutTrip[callback_query.from_user.id]["pointA"] = int(callback_query.data)
+        await bot.edit_message_text(chat_id=callback_query.message.chat.id, message_id=callback_query.message.message_id, text='Куда:',
+                                    reply_markup=point_B_keyboard(route=data['marshrut'], pointA=int(call_data) + 1))
+    await CreateTripPassenger.next()
+
+
+async def createTrip_pointB(callback_query: types.CallbackQuery, state: FSMContext):
+    """
+    Create trip for user & trip point B
+    This function handles the entry of trip point B by the user.
+    It updates the tripPointB in the dataAboutTrip dictionary, sets the user state to MenuUser.start_state,
+    and edit keyboard to confirm or decline trip.
+    :param callback_query: The call containing the user's input
+    :type callback_query: types.CallbackQuery
+    :param state: The FSMContext that contains the state of the FSM
+    :type state: FSMContext
+    """
+    global dataAboutTrip
+    call_data = callback_query.data
+    async with state.proxy() as data:
+        data['tochka2'] = call_data
+        dataAboutTrip[callback_query.from_user.id]["pointB"] = int(callback_query.data)
+        typeOfMembers = "Пассажир" if dataAboutTrip[callback_query.from_user.id][
+                        "typeOfMembers"] == "passenger" else "Водитель"
+        await bot.edit_message_text(chat_id=callback_query.message.chat.id, message_id=callback_query.message.message_id,
+                                    text=f"""Тип участника: {typeOfMembers}
+Направление: {dataAboutTrip[callback_query.from_user.id]['directionName']}
+Маршрут: {dataAboutTrip[callback_query.from_user.id]['routeNumber']}
+Откуда: {DirectionRoutesPoints.get_point_by_direction_and_route(dataAboutTrip[callback_query.from_user.id]['directionName'], 
+                                                                dataAboutTrip[callback_query.from_user.id]["routeNumber"], 
+                                                                dataAboutTrip[callback_query.from_user.id]["pointA"])}
+Куда: {DirectionRoutesPoints.get_point_by_direction_and_route(dataAboutTrip[callback_query.from_user.id]['directionName'], 
+                                                                dataAboutTrip[callback_query.from_user.id]["routeNumber"], 
+                                                                dataAboutTrip[callback_query.from_user.id]["pointB"])}
+Дата и время поездки: {format_date_time(dataAboutTrip[callback_query.from_user.id]["tripDates"])}  {format_date_time(dataAboutTrip[callback_query.from_user.id]["tripTimes"])}""", reply_markup=None)
+    await CreateTripPassenger.set_confirmation.set()
+    # await bot.send_message(callback_query.from_user.id, text_1.t_welcome, reply_markup=GeneralKeyboards.mainMenu)
+    await bot.send_message(callback_query.from_user.id, "Все верно?", reply_markup=GeneralKeyboards.group_yesNo)
+    
+
 # _ _ _ Creating a trip _ _ _
 async def functionFoolproof(message: types.Message):
     """
