@@ -1432,11 +1432,7 @@ async def createTripForUser_check(message: types.Message):
 RegisteredUsers = ["1380181607"]
 
 
-class RegisteredUser(StatesGroup):
-    """Register state"""
-    Register = State()
-
-
+# -------------------- admin -----------------------
 async def start(message: types.Message):
     """Checks by tg id"""
     check = sum(int(i) == int(message.from_user.id) for i in RegisteredUsers)
@@ -1444,8 +1440,36 @@ async def start(message: types.Message):
         await bot.send_message(message.from_user.id, """ru: У вас нет доступа к функционалу бота, свяжитесь с @muslims_elhamdulillah\n
 en: You don't have access to the bot functionality, contact @muslims_elhamdulillah""")
     else:
-        await RegisteredUser.Register.set()
+        await AdminStates.Register.set()
         await bot.send_message(message.from_user.id, "ru: Введите Telegram ID\n\nen: Enter the Telegram ID")
+
+
+async def GetUserByNumber(message: types.Message):
+    """Checks by tg id"""
+    check = sum(int(i) == int(message.from_user.id) for i in RegisteredUsers)
+    if check == 0:
+        await bot.send_message(message.from_user.id, """ru: У вас нет доступа к функционалу бота, свяжитесь с @muslims_elhamdulillah\n
+en: You don't have access to the bot functionality, contact @muslims_elhamdulillah""")
+    else:
+        await AdminStates.Getbynum.set()
+        await bot.send_message(message.from_user.id, "ru: Введите номер пользователя\n\nen: Enter user's number")
+
+
+async def get_user_by_num(message: types.Message):
+    """Transmits account information by telegram id"""
+    try:
+        numb = message.text
+        user_numb = requests.post(
+            f"{BASE_URL}/admin/get_by_number", json={"numb": f'{numb}'}).json()
+        await message.reply(f'Имя: {user_numb["data"][0]["name"]}\n'
+                            f'Фамилия: {user_numb["data"][0]["surname"]}\n'
+                            f'ID в системе: {user_numb["data"][0]["id"]}\n'
+                            f'Телеграм ID: {user_numb["data"][0]["id_tg"]}\n')
+    except Exception as e:
+        await bot.send_message(message.from_user.id, "ru: Ошибка введенного номера \n\nen: Error in user's number")
+    await MenuUser.start_state.set()
+    ts(1)
+    await bot.send_message(message.from_user.id, f'{text_1.t_welcome}', reply_markup=GeneralKeyboards.mainMenu)
 
 
 async def get_user_info(message: types.Message):
@@ -1454,13 +1478,14 @@ async def get_user_info(message: types.Message):
         user = await bot.get_chat(chat_id=message.text)
         await bot.send_message(message.from_user.id,
                                f"""ID: {message.text}
-Username: @{user.username}
-First Name: {user.first_name}
-Last Name: {user.last_name}
-""")
+                                Username: @{user.username}
+                                First Name: {user.first_name}
+                                Last Name: {user.last_name}
+                                """)
     except Exception as e:
         await bot.send_message(message.from_user.id, "ru: Ошибка введенного Telegram ID \n\nen: Error in the Telegram ID entered")
-
+    await MenuUser.start_state.set()
+    await bot.send_message(message.from_user.id, f'{text_1.t_welcome}', reply_markup=GeneralKeyboards.mainMenu)
 
 # _ _ _ The function of a joint trip _ _ _
 
@@ -1687,7 +1712,9 @@ def menuAll(dp=dp):
 
 
 def adminCommands(dp=dp):
-    dp.register_message_handler(start, commands="admin", state="*")
-    dp.register_message_handler(get_user_info, state=RegisteredUser.Register)
+    dp.register_message_handler(start, commands=["admin"], state="*")
+    dp.register_message_handler(GetUserByNumber, commands=["getUsersByNumber"], state="*")
+    dp.register_message_handler(get_user_info, state=AdminStates.Register)
+    dp.register_message_handler(get_user_by_num, state=AdminStates.Getbynum)
     dp.register_callback_query_handler(
         get_information_about_fellow_travelers, state="*")

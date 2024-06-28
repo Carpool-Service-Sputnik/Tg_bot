@@ -99,3 +99,7 @@ class CreateTripPassenger(StatesGroup):
     set_pointA = State()
     set_pointB = State()
     set_confirmation = State()
+
+class AdminStates(StatesGroup):
+    Register = State()
+    Getbynum = State()
