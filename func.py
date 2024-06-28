@@ -228,9 +228,7 @@ def remove_non_digits(text):
         return []
     return newStr
 
-def extract_number(string):
-    match = re.search(r'\d+', string)
-    return int(match.group()) if match else None
+
 
 
 def foolproofCyrillic(text: str):
@@ -273,7 +271,6 @@ def foolproofPhoneNumber(text: str):
         text = text.strip()
 
     return all(char.lower() in Numb for char in text)
-
 
 def foolproofDate(date_str: str) -> bool:
     """
@@ -321,8 +318,6 @@ def calculate_trip_cost(start: int, end: int) -> int:
         cost = 250
     
     return cost
-
-
 
 
 
