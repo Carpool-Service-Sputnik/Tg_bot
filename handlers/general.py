@@ -1429,7 +1429,7 @@ async def createTripForUser_check(message: types.Message):
 
 # _ _ _ Admin _ _ _
 
-RegisteredUsers = ["1380181607"]
+RegisteredUsers = ["588649190"]
 
 
 class RegisteredUser(StatesGroup):
@@ -1460,6 +1460,37 @@ Last Name: {user.last_name}
 """)
     except Exception as e:
         await bot.send_message(message.from_user.id, "ru: Ошибка введенного Telegram ID \n\nen: Error in the Telegram ID entered")
+
+async def get_all_trips(message: types.Message):
+    '''Получение всех поездок всех пользователей'''
+
+    dateRequest = requests.get(f"{BASE_URL}/admin/gettrips/trips", json={}).json()
+    
+    trips_data = dateRequest.get('data', [])
+
+    chunk_size = 10  # Максимальное количество элементов в одном сообщении
+    chunks = [trips_data[i:i + chunk_size] for i in range(0, len(trips_data), chunk_size)]
+    check = 0
+
+    for chunk in chunks:
+        if check == 2:
+            break
+        trips_message = "\n".join([
+            f"ID: {trip['id']}\n"
+            f"ID поездки: {trip['id_trip']}\n"
+            f"Количество пассажиров: {trip['number_of_passengers']}\n"
+            f"Откуда: {trip['pointa']}\n"
+            f"Куда: {trip['pointb']}\n"
+            f"Статус: {trip['status']}\n"
+            f"Дата поездки: {trip['tripsdates']}\n"
+            f"Время поездки: {trip['tripstimes']}\n"
+            f"Тип участников: {trip['typeofmembers']}\n"
+            for trip in chunk
+        ])
+        check += 1
+        await bot.send_message(message.from_user.id, trips_message, reply_markup=GeneralKeyboards.mainMenu)
+
+
 
 
 # _ _ _ The function of a joint trip _ _ _
@@ -1691,3 +1722,5 @@ def adminCommands(dp=dp):
     dp.register_message_handler(get_user_info, state=RegisteredUser.Register)
     dp.register_callback_query_handler(
         get_information_about_fellow_travelers, state="*")
+    dp.register_message_handler(get_all_trips, commands="trips", state="*")
+    
