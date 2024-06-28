@@ -1377,7 +1377,7 @@ Last Name: {user.last_name}
 
 
 async def get_all_users(message: types.Message):
-    '''Получение всех поездок всех пользователей'''
+    '''Получение всех пользователей'''
 
     dateRequest = requests.get(f"{BASE_URL}/admin/getAllColumns/users", json={}).json()
 
