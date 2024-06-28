@@ -274,7 +274,6 @@ def foolproofPhoneNumber(text: str):
 
     return all(char.lower() in Numb for char in text)
 
-
 def foolproofDate(date_str: str) -> bool:
     """
     Foolproof Date Function
@@ -295,6 +294,32 @@ def foolproofDate(date_str: str) -> bool:
         return False
 
 
+def calculate_trip_cost(start: int, end: int) -> int:
+    """
+    Calculate Trip Cost
+
+    Calculates the cost of a trip based on the number of stops between the start and end points.
+
+    :param start: The starting point of the trip (must be a non-negative integer).
+    :type start: int
+    :param end: The ending point of the trip (must be a non-negative integer and different from the starting point).
+    :type end: int
+    :return: The cost of the trip. Returns 0 if the start or end points are invalid or if they are the same.
+    :rtype: int
+    """
+    if start < 0 or end < 0 or start == end:
+        return 0
+    
+    stops = abs(end - start)
+    
+    if stops < 3:
+        cost = 150
+    elif 3 <= stops <= 5:
+        cost = 200
+    else:
+        cost = 250
+    
+    return cost
 
 
 

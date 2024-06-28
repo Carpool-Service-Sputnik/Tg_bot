@@ -420,3 +420,9 @@ def point_B_keyboard(route, pointA):
     new_keyboard.inline_keyboard = [remaining_buttons[i:i + new_keyboard.row_width] for i in
                                     range(0, len(remaining_buttons), new_keyboard.row_width)]
     return new_keyboard
+
+
+def get_payment_keyboard():
+    pay_button = InlineKeyboardButton(text="Оплатить", callback_data="pay")
+    keyboard14 = InlineKeyboardMarkup().add(pay_button)
+    return keyboard14
