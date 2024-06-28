@@ -8,11 +8,11 @@ from multithreading_bot import passengerDateAndTimeCheck
 passengerDateAndTimeCheck()
 
 # Launching grouped registered handlers
+adminCommands(dp)
 startReg(dp)
 menuAll(dp)
 trips(dp)
 car(dp)
-adminCommands(dp)
 
 
 # Starting pooling and skipping messages during the deactivation of the bot

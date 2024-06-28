@@ -615,7 +615,8 @@ async def createTripForUser_typeOfMembers(message: types.Message):
     - None (sends messages and updates the user state)
     """
     global dataAboutUser, dataAboutTrip, dataAboutCar
-    if message.text == "Водитель":
+    check = requests.post(f"{BASE_URL}/check_drivers/get_drivers", json={"id_user": dataAboutUser[message.from_user.id]["user_id"]}).json()["data"]["status"]
+    if message.text == "Водитель" and check == 1:
         dataAboutTrip[message.from_user.id]["typeOfMembers"] = "driver"
         try:
             userData = requests.post(f"{BASE_URL}/gettrips/drivers", json={
@@ -624,7 +625,7 @@ async def createTripForUser_typeOfMembers(message: types.Message):
             log_error(e)
             userData = {"action": "technical maintenance"}
         if userData["action"] == "technical maintenance":
-            await bot.send_sticker(message.from_user.id, sticker=open("data/png/file_131068229.png", 'rb'))
+            await bot.send_sticker(message.from_user.id, sticker=open("data/png/file_131    068229.png", 'rb'))
             await bot.send_message(message.from_user.id, text_1.t_mistake)
             ts(1)
             await bot.send_message(message.from_user.id, text_2.t_technical_maintenance, reply_markup=GeneralKeyboards.single_btn_command_menu)
@@ -647,6 +648,8 @@ async def createTripForUser_typeOfMembers(message: types.Message):
         dataAboutTrip[message.from_user.id]["tripNumberOfPassengers"] = 0
         dataAboutTrip[message.from_user.id]["page_number"] = [
             data[0], data[1], data[3], data[4]]
+    elif check == 0:
+        await bot.send_message(message.from_user.id, text_1.t_set_driver, reply_markup=GeneralKeyboards.group_status)
     else:
         # Foolproof
         await bot.send_message(message.from_user.id, text_1.t_foolproof_buttons, reply_markup=GeneralKeyboards.group_status)
@@ -1340,7 +1343,7 @@ async def createTripForUser_check(message: types.Message):
 
 # _ _ _ Admin _ _ _
 
-RegisteredUsers = ["1380181607"]
+RegisteredUsers = ["730611481"]
 
 
 class RegisteredUser(StatesGroup):
@@ -1371,6 +1374,32 @@ Last Name: {user.last_name}
 """)
     except Exception as e:
         await bot.send_message(message.from_user.id, "ru: Ошибка введенного Telegram ID \n\nen: Error in the Telegram ID entered")
+
+
+async def get_all_users(message: types.Message):
+    '''Получение всех поездок всех пользователей'''
+
+    dateRequest = requests.get(f"{BASE_URL}/admin/getAllColumns/users", json={}).json()
+
+    users_data = dateRequest.get('data', [])
+
+    chunk_size = 10  # Максимальное количество элементов в одном сообщении
+    chunks = [users_data[i:i + chunk_size] for i in range(0, len(users_data), chunk_size)]
+    check = 0
+
+    for chunk in chunks:
+        if check == 2:
+            break
+        users_message = "\n".join([
+            f"ID: {users['id']}\n"
+            f"Имя: {users['name']}\n"
+            f"Номер телефона: {users['numb']}\n"
+            f"ID TG: {users['id_tg']}\n"
+            f"Фамилия: {users['surname']}\n"
+            for users in chunk
+        ])
+        check += 1
+        await bot.send_message(message.from_user.id, users_message, reply_markup=GeneralKeyboards.mainMenu)
 
 
 # _ _ _ The function of a joint trip _ _ _
@@ -1582,3 +1611,4 @@ def adminCommands(dp=dp):
     dp.register_message_handler(get_user_info, state=RegisteredUser.Register)
     dp.register_callback_query_handler(
         get_information_about_fellow_travelers, state="*")
+    dp.register_message_handler(get_all_users, commands="users", state="*")
