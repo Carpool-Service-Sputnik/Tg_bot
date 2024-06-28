@@ -253,12 +253,12 @@ async def first_register_number(message: types.Message, state: FSMContext):
         try:
             zapros = {"name": dataAboutUser[message.from_user.id]["user_name"], "numb": dataAboutUser[message.from_user.id]["user_number"],
                       "id_tg": dataAboutUser[message.from_user.id]["user_tg_id"], "surname": dataAboutUser[message.from_user.id]["user_surname"]}
-            driver_set = {"id_user": dataAboutUser[message.from_user.id]["user_tg_id"], "status": 0}
             dateRequest = requests.post(
                 f"{BASE_URL}/registrations", json=zapros).json()["id"]
+            dataAboutUser[message.from_user.id]["user_id"] = dateRequest
+            driver_set = {"id_user": dataAboutUser[message.from_user.id]["user_id"], "status": 0}
             dr_data = requests.post(
                 f"{BASE_URL}/check_drivers/save_drivers", json=driver_set).json()
-            dataAboutUser[message.from_user.id]["user_id"] = dateRequest
             await MenuUser.start_state.set()
             await bot.send_sticker(message.from_user.id, sticker=open("data/png/file_131068230.png", 'rb'))
             await bot.send_message(message.from_user.id, text_1.t_first_welcome, reply_markup=GeneralKeyboards.mainMenu)
@@ -443,7 +443,7 @@ async def myProfileCommandRegisteredFunction(message: types.Message, state: FSMC
             f"{BASE_URL}/getusers", json={"id": f'{dataAboutUser[message.from_user.id]["user_id"]}'}).json()
         driver_state = requests.post(
                 f"{BASE_URL}/check_drivers/get_drivers",
-                json={"id_user": f'{message.from_user.id}'}).json()['data']['status']
+                json={"id_user": f'{dataAboutUser[message.from_user.id]["user_id"]}'}).json()['data']['status']
     except Exception as e:  # If an exception occurs, writes error data
         log_error(e)
         some_info = "technical maintenance"
