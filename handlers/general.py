@@ -14,8 +14,7 @@ from keyboards import *
 import requests
 from func import *
 from data import DirectionRoutesPoints
-import re
-
+import re 
 
 # _ _ _ Common commands _ _ _
 
