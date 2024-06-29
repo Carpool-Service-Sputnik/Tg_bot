@@ -116,6 +116,11 @@ async def startCommand(message: types.Message):
             await bot.send_message(message.from_user.id, text_1.t_start_3, reply_markup=GeneralKeyboards.group_startMenu)
 
 
+async def getTripsByDirection(message: types.Message):
+    await GetTrips.get_trips_by_direction.set()
+    await bot.send_message(message.from_user.id, "Выбери направление:", reply_markup=direction_keyboard())
+
+
 async def startRegister(message: types.Message):
     """
     startRegister function
@@ -679,6 +684,38 @@ async def createTripForUser_typeOfMembers(message: types.Message):
         # Foolproof
         await bot.send_message(message.from_user.id, text_1.t_foolproof_buttons, reply_markup=GeneralKeyboards.group_status)
 
+
+async def choose_direction_for_search(callback_query: types.CallbackQuery, state: FSMContext):
+    callback_data = callback_query.data
+    print('callback_data', callback_data)
+    directions = {
+        "voenC": "Военвед - Центр",
+        "suvC": "Суворовский - Центр",
+        "sevC": "Северный - Центр",
+        "selC": "Сельмаш - Центр",
+        "zapC": "Западный - Центр",
+        "cVoen": "Центр - Военвед",
+        "cSuv": "Центр - Суворовский",
+        "cSev": "Центр - Северный",
+        "cSel": "Центр - Сельмаш",
+        "cZap": "Центр - Западный"
+    }
+    direction_name = directions.get(callback_data, "")
+    try:
+        tripsData = requests.get(f"{BASE_URL}/gettrips/getTripsByDirection", json={"direction_name": f'{direction_name}'}).json()['data']
+    except Exception as e:
+        print(e)
+
+    if len(tripsData) > 0:
+        newStr = generate_new_str(tripsData)
+        await MenuUser.start_state.set()
+        await bot.delete_message(chat_id=callback_query.from_user.id, message_id=callback_query.message.message_id)
+        await bot.send_message(callback_query.from_user.id, f'Все поездки по направлению "{direction_name}"')
+        await bot.send_message(callback_query.from_user.id, newStr, reply_markup=GeneralKeyboards.mainMenu)
+    else:
+        await MenuUser.start_state.set()
+        await bot.delete_message(chat_id=callback_query.from_user.id, message_id=callback_query.message.message_id)
+        await bot.send_message(callback_query.from_user.id, f'По направлению "{direction_name}" поездок не нашлось(((', reply_markup=GeneralKeyboards.mainMenu)
 
 
 # _ _ _ Creating a trip new version _ _ _
@@ -1601,6 +1638,7 @@ def startReg(dp=dp):
     dp.register_message_handler(startCommand, commands=["menu"], state="*")
     dp.register_message_handler(startCommand, commands=["start"])
     dp.register_message_handler(startCommand, commands=["menu"])
+    dp.register_message_handler(getTripsByDirection, commands=["getTripsByDirection"], state="*")
     dp.register_message_handler(mainMenu)
     dp.register_callback_query_handler(
         trip_cancellation_button, text="cancel a trip", state="*")
@@ -1684,6 +1722,8 @@ def menuAll(dp=dp):
     dp.register_callback_query_handler(choose_route, state=CreateTripPassenger.set_route)
     dp.register_callback_query_handler(createTrip_pointA, state=CreateTripPassenger.set_pointA)
     dp.register_callback_query_handler(createTrip_pointB, state=CreateTripPassenger.set_pointB)
+
+    dp.register_callback_query_handler(choose_direction_for_search, state=GetTrips.get_trips_by_direction)
 
 
 def adminCommands(dp=dp):
