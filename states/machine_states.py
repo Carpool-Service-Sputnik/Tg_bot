@@ -16,10 +16,7 @@ def menuAll(dp=dp):
     dp.register_message_handler(aboutCommand, state=MenuAbout.start_state)
 """
 
-
 from aiogram.dispatcher.filters.state import State, StatesGroup
-
-
 
 
 class UserState(StatesGroup):
@@ -31,9 +28,11 @@ class UserState(StatesGroup):
     get_dateAboutUser_location = State()
     go_menu = State()
 
+
 class AgreementUser(StatesGroup):
     """User Agreement"""
-    get_user_info=State()
+    get_user_info = State()
+
 
 class CreateTrip(StatesGroup):
     """Creating a trip state"""
@@ -94,3 +93,11 @@ class CheckTripsMenu(StatesGroup):
     start_state = State()
     set_current_trips = State()
     set_past_trips = State()
+
+
+class CreateTripPassenger(StatesGroup):
+    set_direction = State()
+    set_route = State()
+    set_pointA = State()
+    set_pointB = State()
+    set_confirmation = State()
