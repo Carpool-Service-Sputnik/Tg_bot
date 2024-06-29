@@ -105,3 +105,7 @@ class CreateTripPassenger(StatesGroup):
     
 class GetTrips(StatesGroup):
     get_trips_by_direction = State()
+
+
+class GetDrivers(StatesGroup):
+    get_drivers = State()

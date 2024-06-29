@@ -117,6 +117,32 @@ async def getTripsByDirection(message: types.Message):
     await bot.send_message(message.from_user.id, "Выбери направление:", reply_markup=direction_keyboard())
 
 
+async def getDrivers(message: types.Message):
+    try:
+        isBecomeDriverData = requests.get(f"{BASE_URL}/get_drivers/by_status",
+                                           json={"status": 1}).json()
+        driversDataList = []
+        for i in isBecomeDriverData["data"]:
+            try:
+                driverData = requests.post(f"{BASE_URL}/getusers",
+                                          json={"id": i["id_user"]}).json()
+                driversDataList.append(driverData['data'])
+            except Exception as e:
+                log_error(e)
+    except Exception as e:
+        log_error(e)
+
+    if len(driversDataList) > 0:
+        answer = generate_new_str_for_drivers(driversDataList)
+        await bot.send_message(message.from_user.id, "Потенциальные водители:\n" + answer,
+                               reply_markup=GeneralKeyboards.mainMenu)
+    else:
+        await bot.send_message(message.from_user.id, "Потенциальных водителей не нашлось(((",
+                               reply_markup=GeneralKeyboards.mainMenu)
+
+
+
+
 async def startRegister(message: types.Message):
     """
     startRegister function
@@ -1688,6 +1714,7 @@ def startReg(dp=dp):
     dp.register_message_handler(startCommand, commands=["start"])
     dp.register_message_handler(startCommand, commands=["menu"])
     dp.register_message_handler(getTripsByDirection, commands=["getTripsByDirection"], state="*")
+    dp.register_message_handler(getDrivers, commands=["getDrivers"], state="*")
     dp.register_message_handler(user_agreement, state=AgreementUser.get_user_info)
 
     dp.register_message_handler(mainMenu)

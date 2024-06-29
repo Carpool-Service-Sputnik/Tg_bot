@@ -166,6 +166,20 @@ def generate_new_str(user_data):
     return new_str
 
 
+def generate_new_str_for_drivers(user_data):
+    """Creates a row depending on the number of items in the list"""
+    new_str = ""
+    for i, data in enumerate(user_data):
+        new_str += f"""
+{i + 1}.
+tg_id пользователя: {data["id_tg"]}
+user_id пользователя: {data["id"]}
+Имя: {data["name"]}
+Фамилия: {data["surname"]}
+Номер телефона: {data["numb"]}
+"""
+    return new_str
+
 
 
 def get_next_error_number(path):
