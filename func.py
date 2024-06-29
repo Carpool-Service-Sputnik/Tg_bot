@@ -293,7 +293,6 @@ def foolproofPhoneNumber(text: str):
 
     return all(char.lower() in Numb for char in text)
 
-
 def foolproofDate(date_str: str) -> bool:
     """
     Foolproof Date Function
@@ -340,8 +339,6 @@ def calculate_trip_cost(start: int, end: int) -> int:
         cost = 250
     
     return cost
-
-
 
 
 

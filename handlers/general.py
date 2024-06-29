@@ -3,6 +3,7 @@ from datetime import time
 from datetime import timedelta
 from aiogram import types
 from aiogram.dispatcher import FSMContext
+import keyboards.inlineKeyboards
 from loader import ts
 from loader import bot
 from loader import dp
@@ -13,8 +14,7 @@ from keyboards import *
 import requests
 from func import *
 from data import DirectionRoutesPoints
-import re
-
+import re 
 
 # _ _ _ Common commands _ _ _
 
@@ -256,6 +256,9 @@ async def first_register_number(message: types.Message, state: FSMContext):
             dateRequest = requests.post(
                 f"{BASE_URL}/registrations", json=zapros).json()["id"]
             dataAboutUser[message.from_user.id]["user_id"] = dateRequest
+            driver_set = {"id_user": dataAboutUser[message.from_user.id]["user_id"], "status": 0}
+            dr_data = requests.post(
+                f"{BASE_URL}/check_drivers/save_drivers", json=driver_set).json()
             await MenuUser.start_state.set()
             await bot.send_sticker(message.from_user.id, sticker=open("data/png/file_131068230.png", 'rb'))
             await bot.send_message(message.from_user.id, text_1.t_first_welcome, reply_markup=GeneralKeyboards.mainMenu)
@@ -321,7 +324,7 @@ async def mainMenu(message: types.Message, state: FSMContext):
     elif message.text == "Мои поездки":
         await myTripsCommandRegisteredFunction(message, state)
     elif message.text == "Поддержка":
-        await bot.send_message(message.from_user.id, text_2.t_support)
+        await bot.send_message(message.from_user.id, text_2.t_support, reply_markup=supportkb)
     elif message.text == "О сервисе":
         await MenuUser.go_to_about.set()
         await bot.send_message(message.from_user.id, text_1.t_about, reply_markup=GeneralKeyboards.group_aboutServiceMenuRegistered)
@@ -372,8 +375,7 @@ async def aboutCommandRegistered(message: types.Message):
         # Foolproof
         await bot.send_message(message.from_user.id, text_1.t_foolproof_buttons, reply_markup=GeneralKeyboards.mainMenu)
 
-
-
+        
 async def become_driver_end(message: types.Message, state: FSMContext):
     if message.text == "В главное меню":
         await MenuUser.start_state.set()
@@ -394,6 +396,12 @@ async def myProfileCommandRegistered(message: types.Message, state: FSMContext):
     await MenuUser.start_state.set()
     if message.text == "Вернуться в главное меню":
         await bot.send_message(message.from_user.id, f'{text_1.t_welcome}', reply_markup=GeneralKeyboards.mainMenu)
+    elif message.text == "Стать водителем":
+        await bot.send_message(message.from_user.id, f'{text_1.t_become_1}',
+                               reply_markup=GeneralKeyboards.single_btn_become_end)
+        await bot.send_message(message.from_user.id, f'{text_1.t_become_2}',
+                               reply_markup=keyboards.inlineKeyboards.becomekb)
+        await BecomeDriver.start_become_dr.set()
     elif message.text == 'Текущий баланс':
         # trying to get user balance 
         try:
@@ -433,6 +441,9 @@ async def myProfileCommandRegisteredFunction(message: types.Message, state: FSMC
     try:
         userData = requests.post(
             f"{BASE_URL}/getusers", json={"id": f'{dataAboutUser[message.from_user.id]["user_id"]}'}).json()
+        driver_state = requests.post(
+                f"{BASE_URL}/check_drivers/get_drivers",
+                json={"id_user": f'{dataAboutUser[message.from_user.id]["user_id"]}'}).json()['data']['status']
     except Exception as e:  # If an exception occurs, writes error data
         log_error(e)
         some_info = "technical maintenance"
@@ -440,9 +451,16 @@ async def myProfileCommandRegisteredFunction(message: types.Message, state: FSMC
         # Output of user data to the bot
         await MenuUser.set_profileInfo.set()
         userData = userData["data"]
-        await bot.send_message(message.from_user.id, f"Имя: {userData['name']}\n"
+        print(driver_state)
+        if driver_state == 1:
+            await bot.send_message(message.from_user.id, f"Имя: {userData['name']}\n"
                                f"Фамилия: {userData['surname']}\n"
-                               f"Номер: {userData['numb']}\n", reply_markup=GeneralKeyboards.group_profileMenu)
+                               f"Номер: {userData['numb']}\n", reply_markup=GeneralKeyboards.group_profileMenu_1)
+        else:
+            await bot.send_message(message.from_user.id, f"Имя: {userData['name']}\n"
+                                                         f"Фамилия: {userData['surname']}\n"
+                                                         f"Номер: {userData['numb']}\n",
+                                   reply_markup=GeneralKeyboards.group_profileMenu)
     elif userData["action"] == "technical maintenance":
         # Output of the text about the occurrence of an error in the database to the user
         await bot.send_sticker(message.from_user.id, sticker=open("data/png/file_131068229.png", 'rb'))
@@ -1677,6 +1695,7 @@ def menuAll(dp=dp):
         myTripsCommandRegistered, state=MenuUser.set_myTrips)
     dp.register_callback_query_handler(top_up_handle_callback, state=ProfileMenu.set_top_up_balance)
     dp.register_message_handler(check_my_trips, state=CheckTripsMenu.start_state)
+    dp.register_message_handler(become_driver_end, state=BecomeDriver.start_become_dr)  # become driver
 
     dp.register_callback_query_handler(choose_direction, state=CreateTripPassenger.set_direction)
     dp.register_callback_query_handler(choose_route, state=CreateTripPassenger.set_route)

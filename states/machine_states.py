@@ -73,6 +73,13 @@ class MenuAbout(StatesGroup):
     set_instruction = State()
 
 
+class BecomeDriver(StatesGroup):
+    """Process Becoming Driver"""
+    start_become_dr = State()
+    change_state_driver = State()
+    set_car_color = State()
+
+
 class ProfileMenu(StatesGroup):
     """Menu about profile"""
     check_balance = State()

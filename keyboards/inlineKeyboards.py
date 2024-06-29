@@ -6,6 +6,14 @@ from pytz import timezone
 from data.DirectionRoutesPoints import *
 from func import *
 
+supportkb = InlineKeyboardMarkup(row_width=1)
+url_tg = InlineKeyboardButton('@baze1evs', url='https://t.me/Baze1evs')
+supportkb.add(url_tg)
+
+becomekb=InlineKeyboardMarkup(row_width=1)
+url_form_driver=InlineKeyboardButton("Форма",url='https://www.youtube.com/watch?v=HIcSWuKMwOw')
+becomekb.add(url_form_driver)
+
 
 def GenerationOfInlineButtons(data, title, rows=3, columns=6, page_number=0):
     """
@@ -412,3 +420,9 @@ def point_B_keyboard(route, pointA):
     new_keyboard.inline_keyboard = [remaining_buttons[i:i + new_keyboard.row_width] for i in
                                     range(0, len(remaining_buttons), new_keyboard.row_width)]
     return new_keyboard
+
+
+def get_payment_keyboard():
+    pay_button = InlineKeyboardButton(text="Оплатить", callback_data="pay")
+    keyboard14 = InlineKeyboardMarkup().add(pay_button)
+    return keyboard14

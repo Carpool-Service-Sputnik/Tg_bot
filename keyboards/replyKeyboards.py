@@ -27,6 +27,8 @@ class GeneralKeyboards():
     btn_main_menu = KeyboardButton('Главное меню')
     btn_main = KeyboardButton('Вернуться в главное меню')
     btn_profile = KeyboardButton('Профиль')
+    btn_become = KeyboardButton('Стать водителем')
+    btn_become_cancel = KeyboardButton('В главное меню')
     btn_my_trips = KeyboardButton('Мои поездки')
     btn_support = KeyboardButton('Поддержка')
     btn_create_trip = KeyboardButton('Создать поездку')
@@ -60,9 +62,17 @@ class GeneralKeyboards():
     single_btn_command_start = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
     single_btn_command_start.add(btn_command_start)
 
-    # - - - Profile buttons: About top up and check balance - - -
-    group_profileMenu = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True, row_width=2)
-    group_profileMenu.add(btn_check_balance, btn_top_up_balabce, btn_main)
+    # - - - Become - - -
+    single_btn_become_end = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=False)
+    single_btn_become_end.add(btn_become_cancel)
+
+    # - - - Profile with driver - - -
+    group_profileMenu = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=False, row_width=2)
+    group_profileMenu.add(btn_check_balance, btn_top_up_balabce, btn_main, btn_become)
+
+    # - - - Profile without driver - - -
+    group_profileMenu_1 = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=False, row_width=2)
+    group_profileMenu_1.add(btn_check_balance, btn_top_up_balabce, btn_main)
 
     # - - - Command Start - - -
     single_btn_command_menu = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
