@@ -79,37 +79,32 @@ async def startCommand(message: types.Message):
         log_error(e)
         dateRequest = {"action": "technical maintenance"}
     if dateRequest["action"] == "success" and dateRequest["name"] != "None":
-        dataAboutUser[message.from_user.id]["user_id"] = dateRequest["id"]
-        dataAboutUser[message.from_user.id]["user_name"] = dateRequest["name"]
-        await MenuUser.start_state.set()
-        await bot.send_message(message.from_user.id, f'{text_1.t_welcome}', reply_markup=GeneralKeyboards.mainMenu)
+        #check if user give consent response
+        try:
+            dateRequestConcent: dict
+            dateRequestConcent = requests.post(f"{BASE_URL}/consent/get_response",
+                                               json={"user_tg_id": message.from_user.id}).json()
+        except Exception as e:
+            log_error(e)
+            dateRequestConcent = {"action": "technical maintenance"}
+        if dateRequestConcent["action"] == "success" and dateRequestConcent["data"]["response"] == 1:
+            dataAboutUser[message.from_user.id]["user_id"] = dateRequest["id"]
+            dataAboutUser[message.from_user.id]["user_name"] = dateRequest["name"]
+            await MenuUser.start_state.set()
+            await bot.send_message(message.from_user.id, f'{text_1.t_welcome}', reply_markup=GeneralKeyboards.mainMenu)
     elif dateRequest["action"] == "technical maintenance":
         await bot.send_sticker(message.from_user.id, sticker=open("data/png/file_131068229.png", 'rb'))
         await bot.send_message(message.from_user.id, text_1.t_mistake)
         ts(1)
         await bot.send_message(message.from_user.id, text_2.t_technical_maintenance, reply_markup=GeneralKeyboards.single_btn_command_menu)
     else:
-        #check if user give consent repsonse
-        try:
-
-            dateRequestConcent: dict
-            dateRequestConcent = requests.post(f"{BASE_URL}/checkuser/get_response",
-                                                json={"id_user": message.from_user.id}).json()
-
-            #dataAboutUser[message.from_user.id]["user_tg_id"]
-        except Exception as e:
-            log_error(e)
-            dateRequestConcent = {"action": "technical maintenance"}
-
-        if dateRequestConcent["action"] == "success" and dateRequestConcent["data"]["response"] == 1:
-            print('log5')
-            await UserState.start_register.set()
-            await bot.send_sticker(message.from_user.id, sticker=open("data/png/file_131068231.png", 'rb'))
-            await bot.send_message(message.from_user.id, text_1.t_start_1)
-            ts(1)
-            await bot.send_message(message.from_user.id, text_1.t_start_2)
-            ts(1)
-            await bot.send_message(message.from_user.id, text_1.t_start_3, reply_markup=GeneralKeyboards.group_startMenu)
+        await UserState.start_register.set()
+        await bot.send_sticker(message.from_user.id, sticker=open("data/png/file_131068231.png", 'rb'))
+        await bot.send_message(message.from_user.id, text_1.t_start_1)
+        ts(1)
+        await bot.send_message(message.from_user.id, text_1.t_start_2)
+        ts(1)
+        await bot.send_message(message.from_user.id, text_1.t_start_3, reply_markup=GeneralKeyboards.group_startMenu)
 
 
 async def startRegister(message: types.Message):
