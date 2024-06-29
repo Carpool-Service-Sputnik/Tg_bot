@@ -228,6 +228,7 @@ def remove_non_digits(text):
         return []
     return newStr
 
+
 def extract_number(string):
     match = re.search(r'\d+', string)
     return int(match.group()) if match else None
