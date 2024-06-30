@@ -101,3 +101,16 @@ class CreateTripPassenger(StatesGroup):
     set_pointA = State()
     set_pointB = State()
     set_confirmation = State()
+
+    
+class GetTrips(StatesGroup):
+    get_trips_by_direction = State()
+
+
+class GetDrivers(StatesGroup):
+    get_drivers = State()
+
+
+class LeaveReview(StatesGroup):
+    start_state = State()
+    set_confirmation = State()

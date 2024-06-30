@@ -107,6 +107,37 @@ async def startCommand(message: types.Message):
         await bot.send_message(message.from_user.id, text_1.t_start_3, reply_markup=GeneralKeyboards.group_startMenu)
 
 
+async def getTripsByDirection(message: types.Message):
+    await GetTrips.get_trips_by_direction.set()
+    await bot.send_message(message.from_user.id, "Выбери направление:", reply_markup=direction_keyboard())
+
+
+async def getDrivers(message: types.Message):
+    try:
+        isBecomeDriverData = requests.get(f"{BASE_URL}/get_drivers/by_status",
+                                           json={"status": 1}).json()
+        driversDataList = []
+        for i in isBecomeDriverData["data"]:
+            try:
+                driverData = requests.post(f"{BASE_URL}/getusers",
+                                          json={"id": i["id_user"]}).json()
+                driversDataList.append(driverData['data'])
+            except Exception as e:
+                log_error(e)
+    except Exception as e:
+        log_error(e)
+
+    if len(driversDataList) > 0:
+        answer = generate_new_str_for_drivers(driversDataList)
+        await bot.send_message(message.from_user.id, "Потенциальные водители:\n" + answer,
+                               reply_markup=GeneralKeyboards.mainMenu)
+    else:
+        await bot.send_message(message.from_user.id, "Потенциальных водителей не нашлось(((",
+                               reply_markup=GeneralKeyboards.mainMenu)
+
+
+
+
 async def startRegister(message: types.Message):
     """
     startRegister function
@@ -559,48 +590,51 @@ async def check_my_trips(message: types.Message, state: FSMContext):
     :send_message: Information about trips
     :type: Text
     """
+    global last_trip_id
     current_datetime = datetime.now()
     if message.text == "Текущие поездки":
         userData = requests.post(f"{BASE_URL}/gettrips/trips", json={
             "id": f'{dataAboutUser[message.from_user.id]["user_id"]}'}).json()
-        data_list = []
-        for data in userData['data']:
-            trip_status = data['status']
-            trip_date = datetime.strptime(format_date_time(data['tripsdates']), "%d.%m.%Y").date()
-            trip_time = (datetime.strptime(format_date_time(data['tripstimes']), "%H:%M")).time()
-            trip_datetime = datetime.combine(trip_date, trip_time) + timedelta(minutes=10) # Дополнительные минуты
-
-            if (trip_status in ['agreed', 'waiting']) and (current_datetime <= trip_datetime):
-                data_list.append(data)
+        data_list = create_list_of_trips(userData['data'], 10, 1)
         await MenuUser.start_state.set()
         if len(data_list) > 0:
             await bot.send_message(message.from_user.id, generate_new_str(data_list),
                                    reply_markup=GeneralKeyboards.mainMenu)
         else:
-            await bot.send_message(message.from_user.id, "У вас нет актуальных поездок",
+            await bot.send_message(message.from_user.id, "У вас нет актуальных поездок(((",
                                    reply_markup=GeneralKeyboards.mainMenu)
 
     elif message.text == "Прошлые поездки":
         userData = requests.post(f"{BASE_URL}/gettrips/trips", json={
             "id": f'{dataAboutUser[message.from_user.id]["user_id"]}'}).json()
-        data_list = []
-        for data in userData['data']:
-            trip_status = data['status']
-            trip_date = datetime.strptime(format_date_time(data['tripsdates']), "%d.%m.%Y").date()
-            trip_time = (datetime.strptime(format_date_time(data['tripstimes']), "%H:%M")).time()
-            trip_datetime = datetime.combine(trip_date, trip_time) + timedelta(minutes=10) # Дополнительные минуты
-
-            if not (trip_status == 'agreed' or trip_status == 'waiting'):
-                data_list.append(data)
-            elif current_datetime >= trip_datetime:
-                data_list.append(data)
-
+        data_list = create_list_of_trips(userData['data'], 10, 0)
         await MenuUser.start_state.set()
         if len(data_list) > 0:
             await bot.send_message(message.from_user.id, generate_new_str(data_list),
                                    reply_markup=GeneralKeyboards.mainMenu)
         else:
-            await bot.send_message(message.from_user.id, "Вы еще не совершали поездок",
+            await bot.send_message(message.from_user.id, "Вы еще не совершали поездок(((",
+                                   reply_markup=GeneralKeyboards.mainMenu)
+
+    elif message.text == "Оставить отзыв":
+        await bot.send_message(message.from_user.id, "Оставить отзыв можно только на послеюнюю поездку")
+
+        tripsData = requests.post(f"{BASE_URL}/gettrips/trips", json={
+            "id": f'{dataAboutUser[message.from_user.id]["user_id"]}'}).json()
+        data_list = create_list_of_trips(tripsData['data'], 120, 2)
+        if len(data_list) > 0:
+            sorted_data = sorted(data_list, key=lambda x: x['tripstimes'], reverse=True)
+            last_trip = []
+            last_trip.append(sorted_data[0])
+            last_trip_id = last_trip[0]['id_trip']
+
+            await LeaveReview.start_state.set()
+            await bot.send_message(message.from_user.id, f"{generate_new_str(last_trip)[3:]}",
+                                   reply_markup=ReplyKeyboardRemove())
+            await bot.send_message(message.from_user.id, "Отправь мне текстом свой отзыв на эту поездку!")
+        else:
+            await MenuUser.start_state.set()
+            await bot.send_message(message.from_user.id, "Вы еще не совершали поездок(((",
                                    reply_markup=GeneralKeyboards.mainMenu)
 
     elif message.text == "Вернуться в главное меню":
@@ -610,6 +644,34 @@ async def check_my_trips(message: types.Message, state: FSMContext):
     else:
         await MenuUser.start_state.set()
         await bot.send_message(message.from_user.id, text_1.t_foolproof_buttons, reply_markup=GeneralKeyboards.mainMenu)
+
+
+async def leave_review(message: types.Message, state: FSMContext):
+    global last_trip_id, review_text
+    review_text = message.text
+    await LeaveReview.set_confirmation.set()
+    await bot.send_message(message.from_user.id, f'Ты точно хочешь оставить этот отзыв?\n\n"{review_text}"', reply_markup=GeneralKeyboards.group_yesNo)
+
+
+async def leave_review_confirmation(message: types.Message, state: FSMContext):
+    global last_trip_id, review_text
+    if message.text == "Да":
+        try:
+            requests.post(f"{BASE_URL}/reviews/create",
+                          json={"id_trip": last_trip_id, "review_text": review_text})
+            await bot.send_message(message.from_user.id, "Отзыв успешно отправлен!")
+        except Exception as e:
+            log_error(e)
+            print(e)
+        await MenuUser.start_state.set()
+        await bot.send_message(message.from_user.id, text_1.t_welcome, reply_markup=GeneralKeyboards.mainMenu)
+    elif message.text == "Нет":
+        await MenuUser.start_state.set()
+        await bot.send_message(message.from_user.id, "Отправка отзыва отменена", reply_markup=GeneralKeyboards.mainMenu)
+    else:
+        await bot.send_message(message.from_user.id, f'{text_1.t_foolproof_buttons}')
+        await bot.send_message(message.from_user.id, f'Ты точно хочешь оставить этот отзыв?\n\n"{review_text}"',
+                               reply_markup=GeneralKeyboards.group_yesNo)
 
 
 # _ _ _ TRIPS _ _ _
@@ -696,6 +758,38 @@ async def createTripForUser_typeOfMembers(message: types.Message):
         # Foolproof
         await bot.send_message(message.from_user.id, text_1.t_foolproof_buttons, reply_markup=GeneralKeyboards.group_status)
 
+
+async def choose_direction_for_search(callback_query: types.CallbackQuery, state: FSMContext):
+    callback_data = callback_query.data
+    print('callback_data', callback_data)
+    directions = {
+        "voenC": "Военвед - Центр",
+        "suvC": "Суворовский - Центр",
+        "sevC": "Северный - Центр",
+        "selC": "Сельмаш - Центр",
+        "zapC": "Западный - Центр",
+        "cVoen": "Центр - Военвед",
+        "cSuv": "Центр - Суворовский",
+        "cSev": "Центр - Северный",
+        "cSel": "Центр - Сельмаш",
+        "cZap": "Центр - Западный"
+    }
+    direction_name = directions.get(callback_data, "")
+    try:
+        tripsData = requests.get(f"{BASE_URL}/gettrips/getTripsByDirection", json={"direction_name": f'{direction_name}'}).json()['data']
+    except Exception as e:
+        print(e)
+
+    if len(tripsData) > 0:
+        newStr = generate_new_str(tripsData)
+        await MenuUser.start_state.set()
+        await bot.delete_message(chat_id=callback_query.from_user.id, message_id=callback_query.message.message_id)
+        await bot.send_message(callback_query.from_user.id, f'Все поездки по направлению "{direction_name}"')
+        await bot.send_message(callback_query.from_user.id, newStr, reply_markup=GeneralKeyboards.mainMenu)
+    else:
+        await MenuUser.start_state.set()
+        await bot.delete_message(chat_id=callback_query.from_user.id, message_id=callback_query.message.message_id)
+        await bot.send_message(callback_query.from_user.id, f'По направлению "{direction_name}" поездок не нашлось(((', reply_markup=GeneralKeyboards.mainMenu)
 
 
 # _ _ _ Creating a trip new version _ _ _
@@ -1635,7 +1729,10 @@ def startReg(dp=dp):
     dp.register_message_handler(startCommand, commands=["menu"], state="*")
     dp.register_message_handler(startCommand, commands=["start"])
     dp.register_message_handler(startCommand, commands=["menu"])
+    dp.register_message_handler(getTripsByDirection, commands=["getTripsByDirection"], state="*")
+    dp.register_message_handler(getDrivers, commands=["getDrivers"], state="*")
     dp.register_message_handler(user_agreement, state=AgreementUser.get_user_info)
+
     dp.register_message_handler(mainMenu)
     dp.register_callback_query_handler(
         trip_cancellation_button, text="cancel a trip", state="*")
@@ -1716,10 +1813,15 @@ def menuAll(dp=dp):
     dp.register_message_handler(check_my_trips, state=CheckTripsMenu.start_state)
     dp.register_message_handler(become_driver_end, state=BecomeDriver.start_become_dr)  # become driver
 
+    dp.register_message_handler(leave_review, state=LeaveReview.start_state)
+    dp.register_message_handler(leave_review_confirmation, state=LeaveReview.set_confirmation)
+
     dp.register_callback_query_handler(choose_direction, state=CreateTripPassenger.set_direction)
     dp.register_callback_query_handler(choose_route, state=CreateTripPassenger.set_route)
     dp.register_callback_query_handler(createTrip_pointA, state=CreateTripPassenger.set_pointA)
     dp.register_callback_query_handler(createTrip_pointB, state=CreateTripPassenger.set_pointB)
+
+    dp.register_callback_query_handler(choose_direction_for_search, state=GetTrips.get_trips_by_direction)
 
 
 def adminCommands(dp=dp):

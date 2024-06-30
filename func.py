@@ -1,6 +1,6 @@
 import string
 import random
-from datetime import datetime
+from datetime import datetime, timedelta
 import os
 import re
 
@@ -166,6 +166,20 @@ def generate_new_str(user_data):
     return new_str
 
 
+def generate_new_str_for_drivers(user_data):
+    """Creates a row depending on the number of items in the list"""
+    new_str = ""
+    for i, data in enumerate(user_data):
+        new_str += f"""
+{i + 1}.
+tg_id пользователя: {data["id_tg"]}
+user_id пользователя: {data["id"]}
+Имя: {data["name"]}
+Фамилия: {data["surname"]}
+Номер телефона: {data["numb"]}
+"""
+    return new_str
+
 
 
 def get_next_error_number(path):
@@ -321,6 +335,51 @@ def calculate_trip_cost(start: int, end: int) -> int:
         cost = 250
     
     return cost
+
+
+def create_list_of_trips(tripsData: list, delay: int, status: int) -> list:
+    """
+    Create List of Trips
+
+    Creates a filtered list of trips based on the provided trips data, current date and time, delay, and status.
+
+    :param tripsData: A list of trip data, where each trip is represented as a dictionary.
+    :type tripsData: list
+    :param delay: The delay in minutes to be added to the trip time for comparison.
+    :type delay: int
+    :param status: The status filter for trips (0, 1, or 2).
+                   0: Include trips that are not 'agreed' or 'waiting', or trips that have passed the adjusted trip time.
+                   1: Include trips that are 'agreed' or 'waiting' and have not passed the adjusted trip time.
+                   2: Include trips that fall within the delay period.
+    :type status: int
+    :return: A list of filtered trips based on the provided criteria.
+    :rtype: list
+    """
+    current_datetime = datetime.now()
+    data_list = []
+    for data in tripsData:
+        trip_status = data['status']
+        trip_date = datetime.strptime(format_date_time(data['tripsdates']), "%d.%m.%Y").date()
+        trip_time = (datetime.strptime(format_date_time(data['tripstimes']), "%H:%M")).time()
+        trip_datetime = datetime.combine(trip_date, trip_time)
+
+        if status == 0:
+            trip_datetime = datetime.combine(trip_date, trip_time) + timedelta(minutes=delay)
+            if not (trip_status == 'agreed' or trip_status == 'waiting'):
+                data_list.append(data)
+            elif current_datetime >= trip_datetime:
+                data_list.append(data)
+
+        elif status == 1:
+            trip_datetime = datetime.combine(trip_date, trip_time) + timedelta(minutes=delay)
+            if (trip_status in ['agreed', 'waiting']) and (current_datetime <= trip_datetime):
+                data_list.append(data)
+
+        elif status == 2:
+            if (current_datetime >= trip_datetime) and (current_datetime <= trip_datetime + timedelta(minutes=delay)):
+                data_list.append(data)
+
+    return data_list
 
 
 
