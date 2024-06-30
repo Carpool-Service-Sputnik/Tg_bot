@@ -15,6 +15,7 @@ trips(dp)
 car(dp)
 
 
+
 # Starting pooling and skipping messages during the deactivation of the bot
 executor.start_polling(dp, skip_updates=True)
 

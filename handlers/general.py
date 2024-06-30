@@ -416,7 +416,7 @@ async def myProfileCommandRegistered(message: types.Message, state: FSMContext):
         await bot.send_message(message.from_user.id, f'{text_1.t_welcome}', reply_markup=GeneralKeyboards.mainMenu)
     elif message.text == "Стать водителем":
         await bot.send_message(message.from_user.id, f'{text_1.t_become_1}',
-                               reply_markup=GeneralKeyboards.single_btn_become_end)
+                               reply_markup=GeneralKeyboards.single_btn_become_end) #DDD
         await bot.send_message(message.from_user.id, f'{text_1.t_become_2}',
                                reply_markup=keyboards.inlineKeyboards.becomekb)
         await BecomeDriver.start_become_dr.set()
@@ -1439,7 +1439,9 @@ async def createTripForUser_check(message: types.Message):
 
 # _ _ _ Admin _ _ _
 
-RegisteredUsers = ["730611481", "1380181607"]
+
+RegisteredUsers = ["730611481", "1380181607", "588649190"]
+
 
 
 class RegisteredUser(StatesGroup):
@@ -1470,6 +1472,72 @@ Last Name: {user.last_name}
 """)
     except Exception as e:
         await bot.send_message(message.from_user.id, "ru: Ошибка введенного Telegram ID \n\nen: Error in the Telegram ID entered")
+
+async def get_all_trips(message: types.Message):
+    '''Получение всех поездок всех пользователей'''
+
+    dateRequest = requests.get(f"{BASE_URL}/admin/gettrips/trips", json={}).json()
+    
+    trips_data = dateRequest.get('data', [])
+
+    chunk_size = 10  # Максимальное количество элементов в одном сообщении
+    chunks = [trips_data[i:i + chunk_size] for i in range(0, len(trips_data), chunk_size)]
+    check = 0
+
+    for chunk in chunks:
+        if check == 2:
+            break
+        trips_message = "\n".join([
+            f"ID: {trip['id']}\n"
+            f"ID поездки: {trip['id_trip']}\n"
+            f"Количество пассажиров: {trip['number_of_passengers']}\n"
+            f"Откуда: {trip['pointa']}\n"
+            f"Куда: {trip['pointb']}\n"
+            f"Статус: {trip['status']}\n"
+            f"Дата поездки: {trip['tripsdates']}\n"
+            f"Время поездки: {trip['tripstimes']}\n"
+            f"Тип участников: {trip['typeofmembers']}\n"
+            for trip in chunk
+        ])
+        check += 1
+        await bot.send_message(message.from_user.id, trips_message, reply_markup=GeneralKeyboards.mainMenu)
+
+
+async def inline_pay(message: types.Message):
+    '''THIS FUNCTION SHOULD BE IN SECTION "PAY FOR A TRIP. You should customize it before copy paste"'''
+    global dataAboutTrip
+
+    # Вычисление стоимости поездки 
+    # calculate_trip_cost( dataAboutTrip[callback_query.from_user.id]["pointA"], dataAboutTrip[callback_query.from_user.id]["pointB"])
+
+    await bot.send_message(message.from_user.id, f'{text_3.t_payTheTrip}',
+                               reply_markup=inlineKeyboards.get_payment_keyboard())
+    
+
+async def pay_for_travel(callback_query: types.CallbackQuery):
+    '''THIS FUNCTION SHOULD BE IN SECTION "PAY FOR A TRIP. You should customize it before copy paste"'''
+    print("FUNCTIONS")
+    try:
+            
+            user_id = 'ASdfdfvdawe'
+
+            balance_response = requests.post(
+                f"{BASE_URL}/balance/spending",
+                json={"user_id": user_id, "deduction": 200} # Specify the cost of the trip instead of '200'
+            )
+            balance_response.raise_for_status()
+            # balance = balance_response.json()["balance"]
+            if callback_query.data == 'pay':
+                await bot.send_message(callback_query.from_user.id, "Оплата прошла успешно!")
+                ts(0.5)
+                await bot.delete_message(callback_query.message.chat.id, callback_query.message.message_id)
+            else:
+                pass
+            
+            
+    except Exception as e:
+        log_error(e)   
+
 
 
 async def get_all_users(message: types.Message):
@@ -1600,6 +1668,16 @@ async def top_up_handle_callback(callback_query: types.CallbackQuery, state: FSM
 
         # sending request to the server to update db
         try:
+
+            #user_id = dataAboutUser[callback_query.from_user.id]["user_id"] #раскомментируй, если эта часть нужна, я хз
+            #balance_response = requests.post(
+            #    f"{BASE_URL}/balance/recharging",
+            #    json={"user_id": user_id, "credit": amount}
+            #)
+            #balance_response.raise_for_status()
+            ## balance = balance_response.json()["balance"]
+       
+
             balance_response = requests.post(f"{BASE_URL}/balance/recharging", json={"user_id": dataAboutUser[callback_query.from_user.id]["user_id"], "credit": amount}).json()
             if balance_response["action"] == "success":
                 await bot.answer_callback_query(callback_query.id)
@@ -1609,6 +1687,7 @@ async def top_up_handle_callback(callback_query: types.CallbackQuery, state: FSM
                 await MenuUser.start_state.set()
             else:
                 raise ValueError(balance_response)
+                
         except Exception as e:
             await bot.answer_callback_query(callback_query.id)
             await bot.delete_message(chat_id=callback_query.from_user.id, message_id=callback_query.message.message_id)
@@ -1723,7 +1802,14 @@ def menuAll(dp=dp):
 
 
 def adminCommands(dp=dp):
+    dp.register_callback_query_handler(pay_for_travel, text="pay", state='*')#Pay the trip
     dp.register_message_handler(start, commands="admin", state="*")
     dp.register_message_handler(get_user_info, state=RegisteredUser.Register)
+
+    dp.register_callback_query_handler(
+        get_information_about_fellow_travelers, state="*")
+    dp.register_message_handler(get_all_trips, commands="trips", state="*")
+    dp.register_message_handler(inline_pay, commands="pay", state="*")  #Pay info
     # dp.register_callback_query_handler(get_information_about_fellow_travelers, state="*")
     dp.register_message_handler(get_all_users, commands="users", state="*")
+

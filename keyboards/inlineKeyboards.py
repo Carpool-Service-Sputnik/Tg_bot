@@ -425,7 +425,7 @@ def point_B_keyboard(route, pointA):
     return new_keyboard
 
 
-def get_payment_keyboard():
+def get_payment_keyboard(): 
     pay_button = InlineKeyboardButton(text="Оплатить", callback_data="pay")
     keyboard14 = InlineKeyboardMarkup().add(pay_button)
     return keyboard14
