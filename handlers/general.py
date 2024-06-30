@@ -398,7 +398,7 @@ async def myProfileCommandRegistered(message: types.Message, state: FSMContext):
         await bot.send_message(message.from_user.id, f'{text_1.t_welcome}', reply_markup=GeneralKeyboards.mainMenu)
     elif message.text == "Стать водителем":
         await bot.send_message(message.from_user.id, f'{text_1.t_become_1}',
-                               reply_markup=GeneralKeyboards.single_btn_become_end)
+                               reply_markup=GeneralKeyboards.single_btn_become_end) #DDD
         await bot.send_message(message.from_user.id, f'{text_1.t_become_2}',
                                reply_markup=keyboards.inlineKeyboards.becomekb)
         await BecomeDriver.start_become_dr.set()
@@ -1491,6 +1491,41 @@ async def get_all_trips(message: types.Message):
         await bot.send_message(message.from_user.id, trips_message, reply_markup=GeneralKeyboards.mainMenu)
 
 
+async def inline_pay(message: types.Message):
+    '''THIS FUNCTION SHOULD BE IN SECTION "PAY FOR A TRIP. You should customize it before copy paste"'''
+    global dataAboutTrip
+
+    # Вычисление стоимости поездки 
+    # calculate_trip_cost( dataAboutTrip[callback_query.from_user.id]["pointA"], dataAboutTrip[callback_query.from_user.id]["pointB"])
+
+    await bot.send_message(message.from_user.id, f'{text_3.t_payTheTrip}',
+                               reply_markup=inlineKeyboards.get_payment_keyboard())
+    
+
+async def pay_for_travel(callback_query: types.CallbackQuery):
+    '''THIS FUNCTION SHOULD BE IN SECTION "PAY FOR A TRIP. You should customize it before copy paste"'''
+    print("FUNCTIONS")
+    try:
+            
+            user_id = 'ASdfdfvdawe'
+
+            balance_response = requests.post(
+                f"{BASE_URL}/balance/spending",
+                json={"user_id": user_id, "deduction": 200} # Specify the cost of the trip instead of '200'
+            )
+            balance_response.raise_for_status()
+            # balance = balance_response.json()["balance"]
+            if callback_query.data == 'pay':
+                await bot.send_message(callback_query.from_user.id, "Оплата прошла успешно!")
+                ts(0.5)
+                await bot.delete_message(callback_query.message.chat.id, callback_query.message.message_id)
+            else:
+                pass
+            
+            
+    except Exception as e:
+        log_error(e)   
+
 
 
 # _ _ _ The function of a joint trip _ _ _
@@ -1604,7 +1639,6 @@ async def top_up_handle_callback(callback_query: types.CallbackQuery, state: FSM
                 f"{BASE_URL}/balance/recharging",
                 json={"user_id": user_id, "credit": amount}
             )
-            print(balance_response)
             balance_response.raise_for_status()
             # balance = balance_response.json()["balance"]
             
@@ -1718,9 +1752,11 @@ def menuAll(dp=dp):
 
 
 def adminCommands(dp=dp):
+    dp.register_callback_query_handler(pay_for_travel, text="pay", state='*')#Pay the trip
     dp.register_message_handler(start, commands="admin", state="*")
     dp.register_message_handler(get_user_info, state=RegisteredUser.Register)
     dp.register_callback_query_handler(
         get_information_about_fellow_travelers, state="*")
     dp.register_message_handler(get_all_trips, commands="trips", state="*")
+    dp.register_message_handler(inline_pay, commands="pay", state="*")  #Pay info
     
