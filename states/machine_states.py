@@ -109,3 +109,8 @@ class GetTrips(StatesGroup):
 
 class GetDrivers(StatesGroup):
     get_drivers = State()
+
+
+class LeaveReview(StatesGroup):
+    start_state = State()
+    set_confirmation = State()

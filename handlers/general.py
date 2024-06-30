@@ -590,48 +590,51 @@ async def check_my_trips(message: types.Message, state: FSMContext):
     :send_message: Information about trips
     :type: Text
     """
+    global last_trip_id
     current_datetime = datetime.now()
     if message.text == "Текущие поездки":
         userData = requests.post(f"{BASE_URL}/gettrips/trips", json={
             "id": f'{dataAboutUser[message.from_user.id]["user_id"]}'}).json()
-        data_list = []
-        for data in userData['data']:
-            trip_status = data['status']
-            trip_date = datetime.strptime(format_date_time(data['tripsdates']), "%d.%m.%Y").date()
-            trip_time = (datetime.strptime(format_date_time(data['tripstimes']), "%H:%M")).time()
-            trip_datetime = datetime.combine(trip_date, trip_time) + timedelta(minutes=10) # Дополнительные минуты
-
-            if (trip_status in ['agreed', 'waiting']) and (current_datetime <= trip_datetime):
-                data_list.append(data)
+        data_list = create_list_of_trips(userData['data'], 10, 1)
         await MenuUser.start_state.set()
         if len(data_list) > 0:
             await bot.send_message(message.from_user.id, generate_new_str(data_list),
                                    reply_markup=GeneralKeyboards.mainMenu)
         else:
-            await bot.send_message(message.from_user.id, "У вас нет актуальных поездок",
+            await bot.send_message(message.from_user.id, "У вас нет актуальных поездок(((",
                                    reply_markup=GeneralKeyboards.mainMenu)
 
     elif message.text == "Прошлые поездки":
         userData = requests.post(f"{BASE_URL}/gettrips/trips", json={
             "id": f'{dataAboutUser[message.from_user.id]["user_id"]}'}).json()
-        data_list = []
-        for data in userData['data']:
-            trip_status = data['status']
-            trip_date = datetime.strptime(format_date_time(data['tripsdates']), "%d.%m.%Y").date()
-            trip_time = (datetime.strptime(format_date_time(data['tripstimes']), "%H:%M")).time()
-            trip_datetime = datetime.combine(trip_date, trip_time) + timedelta(minutes=10) # Дополнительные минуты
-
-            if not (trip_status == 'agreed' or trip_status == 'waiting'):
-                data_list.append(data)
-            elif current_datetime >= trip_datetime:
-                data_list.append(data)
-
+        data_list = create_list_of_trips(userData['data'], 10, 0)
         await MenuUser.start_state.set()
         if len(data_list) > 0:
             await bot.send_message(message.from_user.id, generate_new_str(data_list),
                                    reply_markup=GeneralKeyboards.mainMenu)
         else:
-            await bot.send_message(message.from_user.id, "Вы еще не совершали поездок",
+            await bot.send_message(message.from_user.id, "Вы еще не совершали поездок(((",
+                                   reply_markup=GeneralKeyboards.mainMenu)
+
+    elif message.text == "Оставить отзыв":
+        await bot.send_message(message.from_user.id, "Оставить отзыв можно только на послеюнюю поездку")
+
+        tripsData = requests.post(f"{BASE_URL}/gettrips/trips", json={
+            "id": f'{dataAboutUser[message.from_user.id]["user_id"]}'}).json()
+        data_list = create_list_of_trips(tripsData['data'], 120, 2)
+        if len(data_list) > 0:
+            sorted_data = sorted(data_list, key=lambda x: x['tripstimes'], reverse=True)
+            last_trip = []
+            last_trip.append(sorted_data[0])
+            last_trip_id = last_trip[0]['id_trip']
+
+            await LeaveReview.start_state.set()
+            await bot.send_message(message.from_user.id, f"{generate_new_str(last_trip)[3:]}",
+                                   reply_markup=ReplyKeyboardRemove())
+            await bot.send_message(message.from_user.id, "Отправь мне текстом свой отзыв на эту поездку!")
+        else:
+            await MenuUser.start_state.set()
+            await bot.send_message(message.from_user.id, "Вы еще не совершали поездок(((",
                                    reply_markup=GeneralKeyboards.mainMenu)
 
     elif message.text == "Вернуться в главное меню":
@@ -641,6 +644,34 @@ async def check_my_trips(message: types.Message, state: FSMContext):
     else:
         await MenuUser.start_state.set()
         await bot.send_message(message.from_user.id, text_1.t_foolproof_buttons, reply_markup=GeneralKeyboards.mainMenu)
+
+
+async def leave_review(message: types.Message, state: FSMContext):
+    global last_trip_id, review_text
+    review_text = message.text
+    await LeaveReview.set_confirmation.set()
+    await bot.send_message(message.from_user.id, f'Ты точно хочешь оставить этот отзыв?\n\n"{review_text}"', reply_markup=GeneralKeyboards.group_yesNo)
+
+
+async def leave_review_confirmation(message: types.Message, state: FSMContext):
+    global last_trip_id, review_text
+    if message.text == "Да":
+        try:
+            requests.post(f"{BASE_URL}/reviews/create",
+                          json={"id_trip": last_trip_id, "review_text": review_text})
+            await bot.send_message(message.from_user.id, "Отзыв успешно отправлен!")
+        except Exception as e:
+            log_error(e)
+            print(e)
+        await MenuUser.start_state.set()
+        await bot.send_message(message.from_user.id, text_1.t_welcome, reply_markup=GeneralKeyboards.mainMenu)
+    elif message.text == "Нет":
+        await MenuUser.start_state.set()
+        await bot.send_message(message.from_user.id, "Отправка отзыва отменена", reply_markup=GeneralKeyboards.mainMenu)
+    else:
+        await bot.send_message(message.from_user.id, f'{text_1.t_foolproof_buttons}')
+        await bot.send_message(message.from_user.id, f'Ты точно хочешь оставить этот отзыв?\n\n"{review_text}"',
+                               reply_markup=GeneralKeyboards.group_yesNo)
 
 
 # _ _ _ TRIPS _ _ _
@@ -1781,6 +1812,9 @@ def menuAll(dp=dp):
     dp.register_callback_query_handler(top_up_handle_callback, state=ProfileMenu.set_top_up_balance)
     dp.register_message_handler(check_my_trips, state=CheckTripsMenu.start_state)
     dp.register_message_handler(become_driver_end, state=BecomeDriver.start_become_dr)  # become driver
+
+    dp.register_message_handler(leave_review, state=LeaveReview.start_state)
+    dp.register_message_handler(leave_review_confirmation, state=LeaveReview.set_confirmation)
 
     dp.register_callback_query_handler(choose_direction, state=CreateTripPassenger.set_direction)
     dp.register_callback_query_handler(choose_route, state=CreateTripPassenger.set_route)
