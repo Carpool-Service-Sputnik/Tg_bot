@@ -1445,7 +1445,7 @@ en: You don't have access to the bot functionality, contact @muslims_elhamdulill
 
 
 async def GetUserByNumber(message: types.Message):
-    """Checks by tg id"""
+    """Checks user by number"""
     check = sum(int(i) == int(message.from_user.id) for i in RegisteredUsers)
     if check == 0:
         await bot.send_message(message.from_user.id, """ru: У вас нет доступа к функционалу бота, свяжитесь с @muslims_elhamdulillah\n
@@ -1453,6 +1453,59 @@ en: You don't have access to the bot functionality, contact @muslims_elhamdulill
     else:
         await AdminStates.Getbynum.set()
         await bot.send_message(message.from_user.id, "ru: Введите номер пользователя\n\nen: Enter user's number")
+
+
+async def Gettripsdate(message: types.Message):
+    """Outputs trips by entered date"""
+    check = sum(int(i) == int(message.from_user.id) for i in RegisteredUsers)
+    if check == 0:
+        await bot.send_message(message.from_user.id, """ru: У вас нет доступа к функционалу бота, свяжитесь с @muslims_elhamdulillah\n
+en: You don't have access to the bot functionality, contact @muslims_elhamdulillah""")
+    else:
+        await AdminStates.GetTripsByDate.set()
+        await bot.send_message(message.from_user.id, "ru: Введите дату поездки\n\nen: Enter the date of the trip")
+
+
+async def get_trips_by_date(message: types.Message):
+    """Transmits account information by telegram id"""
+    try:
+        enter_trip_date = message.text.split(" ")
+        try:
+            triptime = enter_trip_date[1]
+        except Exception:
+            triptime = ""
+        print(triptime)
+        trip_date = requests.post(
+            f"{BASE_URL}/admin/get_trips_by_date", json={"tripsdates": f'{enter_trip_date[0]}'}).json()
+        if triptime == "":
+            await bot.send_message(message.from_user.id, f"По этой дате нашлось {len(trip_date['data'])} поездок:")
+            for i in trip_date["data"]:
+                await bot.send_message(message.from_user.id, f'ID в системе: {i["id"]}\n'
+                                                         f'ID поездки: {i["id_trip"]}\n'
+                                                         f'Количество пассажиров: {i["number_of_passengers"]}\n'
+                                                         f'Начальный пункт: {i["pointa"]}\n'
+                                                         f'Конечный пункт: {i["pointb"]}\n'
+                                                         f'Статус: {i["status"]}\n'
+                                                         f'Время поездки: {i["tripstimes"]}\n'
+                                                         f'Тип участников: {i["typeofmembers"]}\n')
+        else:
+            await bot.send_message(message.from_user.id, f"Поездки по дате {enter_trip_date[0]} и времени {triptime}:")
+            for i in trip_date["data"]:
+                if i["tripstimes"] == triptime:
+                    await bot.send_message(message.from_user.id, f'ID в системе: {i["id"]}\n'
+                                                         f'ID поездки: {i["id_trip"]}\n'
+                                                         f'Количество пассажиров: {i["number_of_passengers"]}\n'
+                                                         f'Начальный пункт: {i["pointa"]}\n'
+                                                         f'Конечный пункт: {i["pointb"]}\n'
+                                                         f'Статус: {i["status"]}\n'
+                                                         f'Время поездки: {i["tripstimes"]}\n'
+                                                         f'Тип участников: {i["typeofmembers"]}\n')
+    except Exception as e:
+        await bot.send_message(message.from_user.id, "ru: Ошибка данных \n\nen: Error data")
+    await MenuUser.start_state.set()
+    ts(1)
+    await bot.send_message(message.from_user.id, f'{text_1.t_welcome}', reply_markup=GeneralKeyboards.mainMenu)
+
 
 
 async def get_user_by_num(message: types.Message):
@@ -1486,6 +1539,10 @@ async def get_user_info(message: types.Message):
         await bot.send_message(message.from_user.id, "ru: Ошибка введенного Telegram ID \n\nen: Error in the Telegram ID entered")
     await MenuUser.start_state.set()
     await bot.send_message(message.from_user.id, f'{text_1.t_welcome}', reply_markup=GeneralKeyboards.mainMenu)
+
+
+
+
 
 # _ _ _ The function of a joint trip _ _ _
 
@@ -1714,7 +1771,9 @@ def menuAll(dp=dp):
 def adminCommands(dp=dp):
     dp.register_message_handler(start, commands=["admin"], state="*")
     dp.register_message_handler(GetUserByNumber, commands=["getUsersByNumber"], state="*")
+    dp.register_message_handler(Gettripsdate, commands=["getTripsByDate"], state="*")
     dp.register_message_handler(get_user_info, state=AdminStates.Register)
     dp.register_message_handler(get_user_by_num, state=AdminStates.Getbynum)
+    dp.register_message_handler(get_trips_by_date, state=AdminStates.GetTripsByDate)
     dp.register_callback_query_handler(
         get_information_about_fellow_travelers, state="*")
