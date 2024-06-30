@@ -14,6 +14,9 @@ becomekb=InlineKeyboardMarkup(row_width=1)
 url_form_driver=InlineKeyboardButton("Форма",url='https://www.youtube.com/watch?v=HIcSWuKMwOw')
 becomekb.add(url_form_driver)
 
+UserAgreement = InlineKeyboardMarkup(row_width= 1)
+url_agreement = InlineKeyboardButton('Пользовательское соглашение', url='https://www.youtube.com/watch?v=dQw4w9WgXcQ')
+UserAgreement.add(url_agreement)
 
 def GenerationOfInlineButtons(data, title, rows=3, columns=6, page_number=0):
     """
@@ -268,7 +271,7 @@ def _extracted_from_GenerationOfInlineButtons_time_(arg0, keyboards, empty_butto
 
 
 class SimpleKeyboardsForReplenishBalance:
-    confirm_button = InlineKeyboardButton(text='Подтвердить', callback_data='confirmation_of_replenishment_of_the_balance')
+    confirm_button = InlineKeyboardButton(text='Подтвердить', callback_data='confirmation_of_replenishment_of_the_balance',)
     cancel_button = InlineKeyboardButton(text='Отменить', callback_data='canceling_of_replenishment_of_the_balance')
     confirm_cancel_inline_kb = InlineKeyboardMarkup()
     confirm_cancel_inline_kb.insert(confirm_button).insert(cancel_button)

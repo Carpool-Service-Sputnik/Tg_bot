@@ -68,52 +68,43 @@ async def startCommand(message: types.Message):
     dataAboutCar[message.from_user.id] = {"user_tg_id": message.from_user.id}
 
     # Register user in the service
-    Accounting(dataAboutUser[message.from_user.id]["user_tg_id"]) 
+    Accounting(dataAboutUser[message.from_user.id]["user_tg_id"])
 
     # Check if the user is registered in the service
     try:
         dateRequest: dict
         dateRequest = requests.post(
-            f"{BASE_URL}/checkuser", json={"id_tg": dataAboutUser[message.from_user.id]["user_tg_id"]}).json()   
-
+            f"{BASE_URL}/checkuser", json={"id_tg": dataAboutUser[message.from_user.id]["user_tg_id"]}).json()
     except Exception as e:
         log_error(e)
         dateRequest = {"action": "technical maintenance"}
-
     if dateRequest["action"] == "success" and dateRequest["name"] != "None":
-        dataAboutUser[message.from_user.id]["user_id"] = dateRequest["id"]
-        dataAboutUser[message.from_user.id]["user_name"] = dateRequest["name"]
-        await MenuUser.start_state.set()
-        await bot.send_message(message.from_user.id, f'{text_1.t_welcome}', reply_markup=GeneralKeyboards.mainMenu)
-
+        #check if user give consent response
+        try:
+            dateRequestConcent: dict
+            dateRequestConcent = requests.post(f"{BASE_URL}/consent/get_response",
+                                               json={"user_tg_id": message.from_user.id}).json()
+        except Exception as e:
+            log_error(e)
+            dateRequestConcent = {"action": "technical maintenance"}
+        if dateRequestConcent["action"] == "success" and dateRequestConcent["data"]["response"] == 1:
+            dataAboutUser[message.from_user.id]["user_id"] = dateRequest["id"]
+            dataAboutUser[message.from_user.id]["user_name"] = dateRequest["name"]
+            await MenuUser.start_state.set()
+            await bot.send_message(message.from_user.id, f'{text_1.t_welcome}', reply_markup=GeneralKeyboards.mainMenu)
     elif dateRequest["action"] == "technical maintenance":
         await bot.send_sticker(message.from_user.id, sticker=open("data/png/file_131068229.png", 'rb'))
         await bot.send_message(message.from_user.id, text_1.t_mistake)
         ts(1)
         await bot.send_message(message.from_user.id, text_2.t_technical_maintenance, reply_markup=GeneralKeyboards.single_btn_command_menu)
-
     else:
-        #check if user give consent repsonse
-        try:
-            
-            dateRequestConcent: dict
-            dateRequestConcent = requests.post(f"{BASE_URL}/checkuser/get_response",
-                                                json={"id_user": message.from_user.id}).json()
-            
-            #dataAboutUser[message.from_user.id]["user_tg_id"]
-        except Exception as e:
-            log_error(e)
-            dateRequestConcent = {"action": "technical maintenance"}
-            
-        if dateRequestConcent["action"] == "success" and dateRequestConcent["data"]["response"] == 1:
-            print('log5')
-            await UserState.start_register.set()
-            await bot.send_sticker(message.from_user.id, sticker=open("data/png/file_131068231.png", 'rb'))
-            await bot.send_message(message.from_user.id, text_1.t_start_1)
-            ts(1)
-            await bot.send_message(message.from_user.id, text_1.t_start_2)
-            ts(1)
-            await bot.send_message(message.from_user.id, text_1.t_start_3, reply_markup=GeneralKeyboards.group_startMenu)
+        await UserState.start_register.set()
+        await bot.send_sticker(message.from_user.id, sticker=open("data/png/file_131068231.png", 'rb'))
+        await bot.send_message(message.from_user.id, text_1.t_start_1)
+        ts(1)
+        await bot.send_message(message.from_user.id, text_1.t_start_2)
+        ts(1)
+        await bot.send_message(message.from_user.id, text_1.t_start_3, reply_markup=GeneralKeyboards.group_startMenu)
 
 
 async def startRegister(message: types.Message):
@@ -134,14 +125,41 @@ async def startRegister(message: types.Message):
         await MenuAbout.start_state.set()
         await bot.send_message(message.from_user.id, text_1.t_time, reply_markup=GeneralKeyboards.group_aboutServiceMenu)
     elif message.text == "Зарегистрироваться! 🐣":
-        await UserState.get_dateAboutUser_name.set()
-        ts(1)
-        await bot.send_message(message.from_user.id, text_1.t_reg_name_1)
-        ts(1)
-        await bot.send_message(message.from_user.id, text_1.t_reg_name_2)
+        await AgreementUser.get_user_info.set()
+        await bot.send_message(message.from_user.id, f'{text_1.t_agreement_1}',
+                               reply_markup=GeneralKeyboards.group_agreement)
+        await bot.send_message(message.from_user.id, f'{text_1.t_agreement_4}',
+                               reply_markup=keyboards.inlineKeyboards.UserAgreement)
     else:
         # Foolproof
         await bot.send_message(message.from_user.id, text_1.t_foolproof_buttons, reply_markup=GeneralKeyboards.group_startMenu)
+
+
+# User agreement
+async def user_agreement(message: types.Message):
+    global dataAboutUser
+    if message.text == "Согласиться":
+        try:
+            dateRequest: dict
+            dateRequest = requests.post(
+                f"{BASE_URL}/consent/save_response", json={"user_tg_id": dataAboutUser[message.from_user.id]["user_tg_id"],
+                                                           "response": 1}).json()
+        except Exception as e:
+            log_error(e)
+            await bot.send_sticker(message.from_user.id, sticker=open("data/png/file_131068229.png", 'rb'))
+            await bot.send_message(message.from_user.id, text_1.t_mistake)
+        if dateRequest["action"] == "success":
+            await UserState.get_dateAboutUser_name.set()
+            ts(1)
+            await bot.send_message(message.from_user.id, text_1.t_reg_name_1)
+            ts(1)
+            await bot.send_message(message.from_user.id, text_1.t_reg_name_2)
+    else:
+        await bot.send_message(message.from_user.id, text_1.t_foolproof_buttons)
+        await UserState.start_register.set()
+
+
+
 
 
 # _ _ _ Start_register _ _ _
@@ -375,7 +393,7 @@ async def aboutCommandRegistered(message: types.Message):
         # Foolproof
         await bot.send_message(message.from_user.id, text_1.t_foolproof_buttons, reply_markup=GeneralKeyboards.mainMenu)
 
-        
+
 async def become_driver_end(message: types.Message, state: FSMContext):
     if message.text == "В главное меню":
         await MenuUser.start_state.set()
@@ -403,12 +421,12 @@ async def myProfileCommandRegistered(message: types.Message, state: FSMContext):
                                reply_markup=keyboards.inlineKeyboards.becomekb)
         await BecomeDriver.start_become_dr.set()
     elif message.text == 'Текущий баланс':
-        # trying to get user balance 
+        # trying to get user balance
         try:
             balance: dict
-            balance = requests.post( 
+            balance = requests.post(
             f"{BASE_URL}/balance/getusers", json={"user_id": dataAboutUser[message.from_user.id]["user_id"]}).json()["balance"]
-            
+
         except Exception as e:
             log_error(e)
         # showing user balance if it's exist
@@ -451,7 +469,6 @@ async def myProfileCommandRegisteredFunction(message: types.Message, state: FSMC
         # Output of user data to the bot
         await MenuUser.set_profileInfo.set()
         userData = userData["data"]
-        print(driver_state)
         if driver_state == 1:
             await bot.send_message(message.from_user.id, f"Имя: {userData['name']}\n"
                                f"Фамилия: {userData['surname']}\n"
@@ -640,7 +657,8 @@ async def createTripForUser_typeOfMembers(message: types.Message):
     - None (sends messages and updates the user state)
     """
     global dataAboutUser, dataAboutTrip, dataAboutCar
-    if message.text == "Водитель":
+    check = requests.post(f"{BASE_URL}/check_drivers/get_drivers", json={"id_user": dataAboutUser[message.from_user.id]["user_id"]}).json()["data"]["status"]
+    if message.text == "Водитель" and check == 1:
         dataAboutTrip[message.from_user.id]["typeOfMembers"] = "driver"
         try:
             userData = requests.post(f"{BASE_URL}/gettrips/drivers", json={
@@ -649,7 +667,7 @@ async def createTripForUser_typeOfMembers(message: types.Message):
             log_error(e)
             userData = {"action": "technical maintenance"}
         if userData["action"] == "technical maintenance":
-            await bot.send_sticker(message.from_user.id, sticker=open("data/png/file_131068229.png", 'rb'))
+            await bot.send_sticker(message.from_user.id, sticker=open("data/png/file_131    068229.png", 'rb'))
             await bot.send_message(message.from_user.id, text_1.t_mistake)
             ts(1)
             await bot.send_message(message.from_user.id, text_2.t_technical_maintenance, reply_markup=GeneralKeyboards.single_btn_command_menu)
@@ -672,9 +690,8 @@ async def createTripForUser_typeOfMembers(message: types.Message):
         dataAboutTrip[message.from_user.id]["tripNumberOfPassengers"] = 0
         dataAboutTrip[message.from_user.id]["page_number"] = [
             data[0], data[1], data[3], data[4]]
-    elif message.text == "Пассажир_тест":
-        await CreateTripPassenger.set_direction.set()
-        await message.reply("Выберите направление:", reply_markup=direction_keyboard())
+    elif check == 0:
+        await bot.send_message(message.from_user.id, text_1.t_set_driver, reply_markup=GeneralKeyboards.group_status)
     else:
         # Foolproof
         await bot.send_message(message.from_user.id, text_1.t_foolproof_buttons, reply_markup=GeneralKeyboards.group_status)
@@ -706,14 +723,12 @@ async def choose_direction(callback_query: types.CallbackQuery, state: FSMContex
     for i in range(1, route_numbers + 1):
         routes_text += f'{i} - {DirectionRoutesPoints.get_route_by_direction(dataAboutTrip[callback_query.from_user.id]["directionName"], i)["link"]}\n\n'
     await bot.send_message(callback_query.from_user.id, f"У нас есть такие маршруты:\n\n{routes_text}", reply_markup=route_keyboard(callback_data))
-    print(f"route_numbers    -  {route_numbers}\ndirection_name   -  {direction_name}")
     await CreateTripPassenger.next()
 
 
 async def choose_route(callback_query: types.CallbackQuery, state: FSMContext):
     global dataAboutTrip
     callback_data = callback_query.data
-    print("callback_data in choose_route", callback_data)
     async with state.proxy() as data:
         data['marshrut'] = callback_data
         dataAboutTrip[callback_query.from_user.id]["routeNumber"] = extract_number(callback_data)
@@ -758,7 +773,7 @@ async def createTrip_pointB(callback_query: types.CallbackQuery, state: FSMConte
     :param state: The FSMContext that contains the state of the FSM
     :type state: FSMContext
     """
-    global dataAboutTrip 
+    global dataAboutTrip
     call_data = callback_query.data
     async with state.proxy() as data:
         data['tochka2'] = call_data
@@ -775,14 +790,14 @@ async def createTrip_pointB(callback_query: types.CallbackQuery, state: FSMConte
                                                                             dataAboutTrip[callback_query.from_user.id]["routeNumber"], 
                                                                             dataAboutTrip[callback_query.from_user.id]["pointB"])}
             Дата и время поездки: {format_date_time(dataAboutTrip[callback_query.from_user.id]["tripDates"])}  {format_date_time(dataAboutTrip[callback_query.from_user.id]["tripTimes"])}"""
-        
+
         #If member type is passenger we show him cost of his trip
         if typeOfMembers == 'Водитель':
             await bot.edit_message_text(chat_id=callback_query.message.chat.id, message_id=callback_query.message.message_id, text = text, reply_markup=None)
         else:
             await bot.edit_message_text(chat_id=callback_query.message.chat.id, message_id=callback_query.message.message_id, text = text + f'''{calculate_trip_cost(
                 dataAboutTrip[callback_query.from_user.id]["pointA"], dataAboutTrip[callback_query.from_user.id]["pointB"])}''', reply_markup=None)
-            
+
     await CreateTripPassenger.set_confirmation.set()
     # await bot.send_message(callback_query.from_user.id, text_1.t_welcome, reply_markup=GeneralKeyboards.mainMenu)
     await bot.send_message(callback_query.from_user.id, "Все верно?", reply_markup=GeneralKeyboards.group_yesNo)
@@ -1158,12 +1173,7 @@ async def handle_next_button_date(callback_query: types.CallbackQuery):
 
 async def createTripForUser_tripDates_hours(callback_query: types.CallbackQuery):
     global dataAboutTrip
-    # print("\n date", type(datetime.strptime(callback_query.data, "%d.%m.%Y").date()), "\n")
-    # print("\n date", type(datetime.now().date()), "\n")
-    # if datetime.now().date() == datetime.strptime(callback_query.data, "%d.%m.%Y").date():
-    #     dataAboutTrip[callback_query.from_user.id]["checkDate"] = 0
 
-    # print(dataAboutTrip[callback_query.from_user.id]["checkDate"])
     if datetime.now() > datetime.strptime(callback_query.data, "%d.%m.%Y") + timedelta(days=1):
         await callback_query.answer("Выбери, пожалуйста, актуальную дату!", show_alert=True)
     else:
@@ -1540,8 +1550,30 @@ async def get_user_info(message: types.Message):
     await MenuUser.start_state.set()
     await bot.send_message(message.from_user.id, f'{text_1.t_welcome}', reply_markup=GeneralKeyboards.mainMenu)
 
+async def get_all_users(message: types.Message):
+    '''Получение всех пользователей'''
 
+    dateRequest = requests.get(f"{BASE_URL}/admin/getAllColumns/users", json={}).json()
 
+    users_data = dateRequest.get('data', [])
+
+    chunk_size = 10  # Максимальное количество элементов в одном сообщении
+    chunks = [users_data[i:i + chunk_size] for i in range(0, len(users_data), chunk_size)]
+    check = 0
+
+    for chunk in chunks:
+        if check == 2:
+            break
+        users_message = "\n".join([
+            f"ID: {users['id']}\n"
+            f"Имя: {users['name']}\n"
+            f"Номер телефона: {users['numb']}\n"
+            f"ID TG: {users['id_tg']}\n"
+            f"Фамилия: {users['surname']}\n"
+            for users in chunk
+        ])
+        check += 1
+        await bot.send_message(message.from_user.id, users_message, reply_markup=GeneralKeyboards.mainMenu)
 
 
 # _ _ _ The function of a joint trip _ _ _
@@ -1643,30 +1675,28 @@ async def top_up_handle_callback(callback_query: types.CallbackQuery, state: FSM
         
                                
     if action == 'confirmation_of_replenishment_of_the_balance':
-        await bot.answer_callback_query(callback_query.id)
-        await bot.delete_message(chat_id=callback_query.from_user.id, message_id=callback_query.message.message_id)
-        await bot.send_message(callback_query.from_user.id, f'Пополнение подтверждено! +{amount} ₽',
-                               reply_markup=GeneralKeyboards.mainMenu)
-        
-        # sending request to the server to update db 
+
+        # sending request to the server to update db
         try:
-            user_id = dataAboutUser[callback_query.from_user.id]["user_id"]
-            balance_response = requests.post(
-                f"{BASE_URL}/balance/recharging",
-                json={"user_id": user_id, "credit": amount}
-            )
-            print(balance_response)
-            balance_response.raise_for_status()
-            # balance = balance_response.json()["balance"]
-            
+            balance_response = requests.post(f"{BASE_URL}/balance/recharging", json={"user_id": dataAboutUser[callback_query.from_user.id]["user_id"], "credit": amount}).json()
+            if balance_response["action"] == "success":
+                await bot.answer_callback_query(callback_query.id)
+                await bot.delete_message(chat_id=callback_query.from_user.id, message_id=callback_query.message.message_id)
+                await bot.send_message(callback_query.from_user.id, f'Пополнение подтверждено! +{amount} ₽',
+                                       reply_markup=GeneralKeyboards.mainMenu)
+                await MenuUser.start_state.set()
+            else:
+                raise ValueError(balance_response)
         except Exception as e:
+            await bot.answer_callback_query(callback_query.id)
+            await bot.delete_message(chat_id=callback_query.from_user.id, message_id=callback_query.message.message_id)
+            await bot.send_message(callback_query.from_user.id, 'Ошибка!', reply_markup=GeneralKeyboards.mainMenu)
+            await MenuUser.start_state.set()
             log_error(e)
-        
-        
 
-        await MenuUser.start_state.set()
 
-    elif action == 'canceling_of_replenishment_of_the_balance':
+
+    if action == 'canceling_of_replenishment_of_the_balance':
         await bot.answer_callback_query(callback_query.id)
         await bot.delete_message(chat_id=callback_query.from_user.id, message_id=callback_query.message.message_id)
         await bot.send_message(callback_query.from_user.id, 'Пополнение отменено!',
@@ -1683,6 +1713,7 @@ def startReg(dp=dp):
     dp.register_message_handler(startCommand, commands=["menu"], state="*")
     dp.register_message_handler(startCommand, commands=["start"])
     dp.register_message_handler(startCommand, commands=["menu"])
+    dp.register_message_handler(user_agreement, state=AgreementUser.get_user_info)
     dp.register_message_handler(mainMenu)
     dp.register_callback_query_handler(
         trip_cancellation_button, text="cancel a trip", state="*")
@@ -1696,7 +1727,7 @@ def startReg(dp=dp):
     dp.register_message_handler(
         first_register_surname, state=UserState.get_dateAboutUser_surname)
     dp.register_message_handler(
-        first_register_number, state=UserState.get_dateAboutUser_number, content_types=types.ContentType.CONTACT)
+            first_register_number, state=UserState.get_dateAboutUser_number, content_types=types.ContentType.CONTACT)
     dp.register_message_handler(
         first_register_number, state=UserState.get_dateAboutUser_number)
 
@@ -1718,6 +1749,7 @@ def trips(dp=dp):
         createTripForUser_tripDates_minutes, state=CreateTrip.get_dateAbout_tripDates)
     dp.register_callback_query_handler(
         createTripForUser_tripTimes, state=CreateTrip.get_dateAbout_tripTimes_minutes)
+
     dp.register_message_handler(
         createTripForUser_check, state=CreateTripPassenger.set_confirmation)
 
@@ -1777,3 +1809,6 @@ def adminCommands(dp=dp):
     dp.register_message_handler(get_trips_by_date, state=AdminStates.GetTripsByDate)
     dp.register_callback_query_handler(
         get_information_about_fellow_travelers, state="*")
+    # dp.register_callback_query_handler(get_information_about_fellow_travelers, state="*")
+    dp.register_message_handler(get_all_users, commands="users", state="*")
+

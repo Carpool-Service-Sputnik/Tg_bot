@@ -3,7 +3,7 @@ from loader import dp
 from loader import bot
 from handlers import *
 from multithreading_bot import passengerDateAndTimeCheck
-from data import DirectionRoutesPoints
+
 
 passengerDateAndTimeCheck()
 
@@ -13,7 +13,6 @@ startReg(dp)
 menuAll(dp)
 trips(dp)
 car(dp)
-
 
 
 # Starting pooling and skipping messages during the deactivation of the bot
