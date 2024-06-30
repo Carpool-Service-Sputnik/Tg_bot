@@ -3,7 +3,7 @@ from loader import dp
 from loader import bot
 from handlers import *
 from multithreading_bot import passengerDateAndTimeCheck
-from data import DirectionRoutesPoints
+
 
 passengerDateAndTimeCheck()
 
